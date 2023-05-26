@@ -1,0 +1,178 @@
+<link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+
+    {% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <ul class=flashes>
+    {% for message in messages %}
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %} 
+
+<main>
+
+    <div class="container">
+        <br> <br>
+        <div class="text-center pb-2">
+            <h6 class="text-primary text-uppercase font-weight-bold">LOGIN TO DEYGO!</h6>
+            <h1 class="mb-4">Login In To Your Account</h1>
+        </div>
+        <br> <br>
+
+        <div class="container" style="align-center;">
+            <button type="button" class="btn1 btn1-primary btn-block" data-toggle="modal" data-target="#exampleModal" data-whatever="@mdo">User Sign In</button>
+            <br> <br> <br> <br>
+            <button type="button" class="btn1 btn1-primary btn-block" data-toggle="modal" data-target="#example2Modal" data-whatever="@fat">Partner Sign In</button>
+
+            <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="row">
+                            <div class="col-12 mb-4">
+                                <div class="card card-body border-0 shadow mb-4">
+                                    <h2 class="h5 mb-4">User Login</h2>
+
+                                    <form method="POST" action="" class="mt-4" name="user-form" id="user-form">
+                                        {{ form.hidden_tag() }}
+                                        <div class="form-group mb-4">
+                                            <label for="email">Email</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text" id="basic-addon1">
+                                                    <span class="fas fa-user-circle"></span>
+                                                </span>
+                                                {{ form.email(placeholder="Email", class="form-control", type="email") }}
+                                            </div>  
+                                        </div>
+
+                                        <!-- Form -->
+                                        <div class="form-group mb-4">
+                                            <label for="email">Password</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text" id="basic-addon1">
+                                                    <span class="fas fa-envelope"></span>
+                                                </span>
+                                                {{ form.password(placeholder="Password", class="form-control", type="password") }}
+                                            </div>  
+                                        </div>
+                                        <!-- End of Form -->
+                                        
+                                        <!-- End of Form -->
+                                        <br>
+                                        <div class="d-flex justify-content-between align-items-top mb-4">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" value="" id="remember">
+                                                <label class="form-check-label mb-0" for="remember">
+                                                Remember me
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            {{ form.submit(placeholder="SIGN UP", class="btn1 btn1-primary") }}
+                                        </div>
+
+                                    </form>
+                                    <br>
+
+                                    <div class="d-flex justify-content-center align-items-center mt-4">
+                                        <span class="fw-normal">
+                                            Don't have an account? 
+                                            <a href="{{ url_for("user_signup")}}" class="fw-bold">Create One Here!</a>
+                                        </span>
+                                    </div>
+                                
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="modal fade" id="example2Modal"  role="dialog" aria-labelledby="example2Modal" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="row">
+                            <div class="col-12 mb-4">
+                                <div class="card card-body border-0 shadow mb-4">
+                                    <h2 class="h5 mb-4">Partner Login</h2>
+                                    <form method="post" action="" class="mt-4" name="partner-form" id="partner-form">
+                                        {{ form2.hidden_tag() }}
+
+                                        <!-- Form -->
+                                        <div class="form-group mb-4">
+                                            <label for="email">Username</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text" id="basic-addon1">
+                                                    <span class="fas fa-user-circle"></span>
+                                                </span>
+                                                {{ form2.username(placeholder="Username", class="form-control", type="username", id="partner-user") }}
+                                            </div>  
+                                        </div>
+                                        <!-- End of Form -->
+
+                                        <div class="form-group mb-4">
+                                            <label for="password">Email</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text" id="basic-addon2">
+                                                    <span class="fas fa-unlock-alt"></span>
+                                                </span>
+                                                {{ form2.email(placeholder="Email", class="form-control", type="email") }}
+                                            </div>  
+                                        </div>
+                                        <!-- End of Form -->
+
+                                        <div class="form-group mb-4">
+                                            <label for="password">Your Password</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text" >
+                                                    <span class="fas fa-unlock-alt"></span>
+                                                </span>
+                                                {{ form2.password(placeholder="Password", class="form-control", type="password") }}
+                                            </div>  
+                                        </div>
+                                        <!-- End of Form -->
+
+                                            <br>
+                                        <div class="d-flex justify-content-between align-items-top mb-4">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" value="" id="remember">
+                                                <label class="form-check-label mb-0" for="remember">
+                                                Remember me
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            {{ form2.submit(placeholder="Login", class="btn1 btn1-primary") }}
+                                        </div>
+
+                                    </form>
+                                    <br>
+                                    <div class="d-flex justify-content-center align-items-center mt-4">
+                                        <span class="fw-normal">
+                                            Don't have an account? 
+                                            <a href="{{ url_for("partner_signup")}}" class="fw-bold">Create One Here!</a>
+                                        </span>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    
+        </div>
+    </div>
+
+</main>

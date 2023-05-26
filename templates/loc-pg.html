@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>User App</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js" ></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js"></script>
+    <style>
+        #map {
+            width: 800px;
+            height: 600px;
+        }
+    </style>
+</head>
+<body>
+    <h1>User App</h1>
+    <div id="map"></div>
+
+    <script>
+        var socket = io.connect('http://127.0.0.1:5000');
+        var map;
+
+        // Initialize the Mapbox map
+        function initializeMap() {
+            mapboxgl.accessToken = 'pk.eyJ1IjoiaXNyYWVsZGtuIiwiYSI6ImNsZ2I5ajg5dzAxc2EzZ3BnYzJsYzFidWMifQ.kHIs7ohcJ-ddu250O92saw';
+            map = new mapboxgl.Map({
+                container: 'map',
+                style: 'mapbox://styles/mapbox/satellite-streets-v12',
+                center: [-122.662323, 45.523751], // Initial center coordinates
+                zoom: 4 // Initial zoom level
+            });
+        }
+
+        // Create a GeoJSON source for the rider locations
+        var riderLocationSource = {
+            type: 'geojson',
+            data: '/rider_locations.geojson' // URL to the GeoJSON file served by the Flask app
+        };
+
+        // Add the rider location source to the map
+        map.on('load', function () {
+            map.addSource('rider-locations', riderLocationSource);
+
+            // Add a layer to display the rider locations on the map
+            map.addLayer({
+                id: 'rider-locations-layer',
+                type: 'symbol',
+                source: 'rider-locations',
+                layout: {
+                    'icon-image': 'marker-15', // Use a custom marker icon
+                    'icon-allow-overlap': true
+                }
+            });
+
+            // Fit the map bounds to the initial rider locations
+            var bounds = new mapboxgl.LngLatBounds();
+            riderLocationSource.data.features.forEach(function (rider) {
+                bounds.extend(rider.geometry.coordinates);
+            });
+            map.fitBounds(bounds, { padding: 50 });
+        });
+
+        // Handle updates of rider locations
+        socket.on('rider_locations', function (riderLocations) {
+            // Update the rider location source with the new data
+            map.getSource('rider-locations').setData(riderLocations);
+        });
+
+        // Connect to the server
+        socket.on('connect', function () {
+            console.log('User connected');
+        });
+
+        // Disconnect from the server
+        socket.on('disconnect', function () {
+            console.log('User disconnected');
+        });
+
+        // Request rider location updates
+        socket.on('request_rider_location', function () {
+            // Emit an event to the server requesting the latest rider locations
+            socket.emit('get_rider_locations');
+        });
+        
+        // Send a request for rider locations initially and every 5 seconds
+        setInterval(function () {
+            socket.emit('get_rider_locations');
+        }, 5000);
+    </script>
+</body>
+</html>
