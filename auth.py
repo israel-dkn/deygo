@@ -503,7 +503,7 @@ def format_number_with_commas(number):
 def partner_dashboard():
     # redirect to home page if the user current session is "user"
     if session['type'] == "user":
-        flash("You Must be a partner to access this page")
+        flash("You Must be a partner to access this page", category="error")
         return redirect(url_for("home"))
     elif session['type'] == "partner":
         
@@ -825,6 +825,13 @@ def request_delivery():
 @app.route("/", methods=["POST", "GET"])
 @app.route("/home", methods=["POST", "GET"])
 def home():
+    
+    # redirect to home page if the user current session is "partner"
+    if session['type'] == "partner":
+        flash("You Must login as a User to access this page", category="error")
+        return redirect(url_for("partner_dashboard"))
+
+    
     form = RequestOrderForm(request.form)
     ses = session['type']
     
