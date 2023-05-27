@@ -30,6 +30,27 @@
 </head>
 
 <body>
+    <div class="sticky-top">
+        {% with messages = get_flashed_messages(with_categories=true) %} {% if
+            messages %} {% for category, message in messages %} {% if category ==
+            'error' %}
+            <div class="alert alert-danger alter-dismissable fade show" role="alert">
+              {{ message }}
+              <button type="button" class="close" data-dismiss="alert">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            {% else %}
+            <div class="alert alert-success alter-dismissable fade show" role="alert">
+              {{ message }}
+              <button type="button" class="close" data-dismiss="alert">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            {% endif %} {% endfor %} {% endif %} {% endwith %}
+    </div>
+
+
     <!-- Topbar Start -->
     <div class="container-fluid bg-dark">
         <div class="row py-2 px-lg-5">
@@ -73,19 +94,31 @@
             <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbarCollapse">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            {% if session['type'] == 'partner'%}
+                 
             <div class="collapse navbar-collapse justify-content-between px-lg-3" id="navbarCollapse">
                 <div class="navbar-nav m-auto py-0">
-                    <a href="/" class="nav-item nav-link active">My Dash</a>
-                    <a href="/" class="nav-item nav-link">My Rides</a>
-                    <a href="/" class="nav-item nav-link">Feedbacks/Ratings</a> 
-                    <a href="/" class="nav-item nav-link">Financials</a>
+           
+                    <a href="/home" class="nav-item nav-link">Home</a>
+                
+                    <a href="/" class="nav-item nav-link">About</a>
+                  
+                    <a href="/" class="nav-item nav-link">Service</a>
+                
+
+                  
                     <a href="/" class="nav-item nav-link">Price</a>
-                    <a href="/" class="nav-item nav-link">Contact</a>
+                    <div class="nav-item dropdown">
+                        <a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown">Pages</a>
+                        <div class="dropdown-menu rounded-0 m-0">
+                            <a href="/" class="dropdown-item">Blog Grid</a>
+                            <a href="/" class="dropdown-item">Blog Detail</a>
+                        </div>
+                    </div>
+                    
+                    <a href="/contact" class="nav-item nav-link">Contact</a>
                 </div>
-                <a href="" class="btn btn-dark py-2 px-4 d-none d-lg-block disabled">{{ ses }}</a>
+                <a href="" class="btn btn-primary py-2 px-4 d-none d-lg-block">Get A Quote</a>
             </div>
-            {% endif %}
         </nav>
     </div>
     <!-- Navbar End -->
@@ -94,26 +127,7 @@
     <!-- Header Start -->
     
     
-    <div class="jumbotron jumbotron-fluid mb-5">
-        <div class="sticky-top">
-            {% with messages = get_flashed_messages(with_categories=true) %} {% if
-                messages %} {% for category, message in messages %} {% if category ==
-                'error' %}
-                <div class="alert alert-danger alter-dismissable fade show" role="alert">
-                  {{ message }}
-                  <button type="button" class="close" data-dismiss="alert">
-                    <span aria-hidden="true">&times;</span>
-                  </button>
-                </div>
-                {% else %}
-                <div class="alert alert-success alter-dismissable fade show" role="alert">
-                  {{ message }}
-                  <button type="button" class="close" data-dismiss="alert">
-                    <span aria-hidden="true">&times;</span>
-                  </button>
-                </div>
-                {% endif %} {% endfor %} {% endif %} {% endwith %}
-        </div>
+    <div class="jumbotron jumbotron-fluid mb-5">  
         <div class="container text-center py-5">
             <h1 class="text-primary mb-4"> DEY GO! </h1>
             <h1 class="text-white display-3 mb-5">Logistics  Services</h1>
@@ -326,8 +340,12 @@
                         
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                                <a href="{{ url_for("request_delivery") }}" placeholder="Request" class="btn1 btn1-primary p-2" </a>
+                                
+                                <a href="{{ url_for("user-dash") }}" type='submit' class="btn1 btn1-primary p-2"> Request </a>
+                                
+                            
                             </div>
+
                             
                             </div>
                         </div>
@@ -342,36 +360,7 @@
     <!-- Header End -->
 
 
-<!-- For New Ride Requests -->
-{% if session['type'] == 'user'%}
-{% for order_qry in order_qry %}
-<div class="container">
-    <div class="card">
-        <div class="card-body">
-          <h5 class="card-title">Picked Up By: {{ order_qry.partner.username }}</h5>
-          <p class="card-text">Tracking ID: {{ order_qry.track_id }} </p>
-          {% if order_qry.status == 'accepted' %}
-            <p class="card-text">Status: <span class="badge badge-pill badge-success"> {{ order_qry.status }} </span> </p>
-         
-          {% else %}
-            <p class="card-text">Status: <span class="badge badge-pill badge-secondary"> {{ order_qry.status }} </span> </p>
-          {% endif %}
-          
-          <p class="card-text">Pickup: {{ order_qry.pickup }}</p>
-          <p class="card-text">Deliver: {{ order_qry.dropoff }} </p>
-          <p class="card-text">Time: <b>{{order_qry.delivery_time}} mins</p>
-          <p class="card-text">Distance: <b>{{order_qry.delivery_distance}} km</p>
-        <p class="card-text">Price: <b>NGN {{order_qry.delivery_cost}} </b></p>
-          <a href="#" class="btn btn-primary w-50">Edit</a>
-        </div>
-      </div>
-    </div>
-    {% endfor %}
-    {% endif %}
-<!--End New Ride Requests-->
-
-
-    <!-- About Start -->
+<    <!-- About Start -->
     <div class="container-fluid py-5">
         <div class="container">
             <div class="row align-items-center">
@@ -383,7 +372,7 @@
                     </div>
                 </div>
                 <div class="col-lg-7">
-                <h6 class="text-primary text-uppercase font-weight-bold">Ride Details</h6>
+                <h6 class="text-primary text-uppercase font-weight-bold">{{current_user.email}}Ride Details</h6>
                     <h1 class="mb-4">Trusted & Faster Logistic Service Provider</h1>
                     <p class="mb-4">Distance: {{testdistance}} </p>
                     <p class="mb-4">ETA: {{testtime}} mins</p>
