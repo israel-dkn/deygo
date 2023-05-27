@@ -727,21 +727,15 @@ def order_accepted(id):
     return redirect(url_for("partner_dashboard"))
 
 
-    
-# this is the main home landing page
-# i will create a column on the database to generate and store tracking id which the user can always track their package
-@app.route("/", methods=["POST", "GET"])
-@app.route("/home", methods=["POST", "GET"])
+#Route to create dispatch request
+@app.route("/request-delivery", methods=["POST","GET"])
 @login_required
-def home():
-    ses = session['type']
-    form = RequestOrderForm(request.form)
-    
+def request_delivery():
+  
     #values in naira
     basecharge = 300
     cost_per_min = 30
     cost_per_km = 70 
-    
     
     
     if request.method == "POST" and form.validate():
@@ -790,7 +784,6 @@ def home():
                 "vehicleCommercial": False
             }
         }
-        
         headers = {"Content-Type": "application/json"}
 
         request2 = requests.request("POST", url, json=payload, headers=headers, params=querystring)
@@ -824,7 +817,17 @@ def home():
         
         form.pickup.data = ''
         form.dropoff.data = ''
-   
+    return redirect(url_for("home"))
+    
+    
+# this is the main home landing page
+# i will create a column on the database to generate and store tracking id which the user can always track their package
+@app.route("/", methods=["POST", "GET"])
+@app.route("/home", methods=["POST", "GET"])
+def home():
+    form = RequestOrderForm(request.form)
+    ses = session['type']
+    
     user_id = current_user.id
     order_qry = Orders.query.filter(Orders.order.has(id=user_id)).all()
     
