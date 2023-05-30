@@ -2,3 +2,6 @@ flask security - pretty printed youtube
 flask wtf forms
 
 SQL Database
+
+
+Add the table to query all drivers rides

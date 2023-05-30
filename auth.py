@@ -22,6 +22,8 @@ site_name="DEY GO"
 app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_NAME}"
 secret_key = "IgVnWnSwmS0LN4RtKaaCubIiFCG2Iq0FSFDqJaboBy0eXHakp0jHFQ"
 app.config["SECRET_KEY"] = "my secret key"
+tomtom_admin_key = "PUuQt6512jSNCD3gdu00VxzYAsKQ7VDo2XrJoPvGhhhNoSl0"
+tomtom_api_key = "JoBjMY24siY0bENUY5g52SLXouAaf4FX"
 socketio = SocketIO(app)
 geolocator = Nominatim(user_agent="deygologapp")
 db.init_app(app)
@@ -113,7 +115,7 @@ class Orders(db.Model):
     dropoff_coord = db.Column(db.String)
     placed_by = db.Column(db.String) #placed_by=current_user.name
     placed_by_id = db.Column(db.String) #placed_by=current_user.id
-    time_created = db.Column(db.DateTime, default=datetime.utcnow)
+    time_created = db.Column(db.DateTime, default=datetime.now)
     track_id = db.Column(db.String, default=ran_id)
     status = db.Column(db.String(20), default='pending')
     driver_id = db.Column(db.Integer, db.ForeignKey('partnersignup.id'))
@@ -139,6 +141,8 @@ class PartnerSignup(db.Model, UserMixin):
     email = db.Column(db.String, unique=True, nullable=False)
     password = db.Column(db.String)
     con_password = db.Column(db.String)
+    driver_lat = db.Column(db.String)
+    driver_lon = db.Column(db.String)
     driver = db.relationship('Orders', backref='partner')
     
     
@@ -297,6 +301,43 @@ class TrackTestForm(FlaskForm):
 # <---- All test routes will go here ---->
 
 
+
+@app.route("/html1")
+def html1():
+    return render_template("html1.html")
+
+
+def total_seconds_filter(td):
+    return td.total_seconds()
+
+# Register the custom filter
+app.jinja_env.filters['total_seconds'] = total_seconds_filter
+
+
+def calculate_time_difference(minutes_ago):
+    current_time = datetime.now()
+    time_difference = current_time - minutes_ago
+    minutes = int(time_difference.total_seconds() / 60)
+    return minutes
+
+
+def display_time_ago(minutes):
+    if minutes < 1:
+        return "Just now"
+    elif minutes == 1:
+        return "1 min ago"
+    elif minutes < 60:
+        return "{} mins ago".format(minutes)
+    elif minutes < 1440:
+        hours = minutes // 60
+        return "{} hours ago".format(hours)
+    else:
+        days = minutes // 1440
+        return "{} days ago".format(days)
+
+
+
+
 @app.route("/index1")
 def index1():
     trk_id = Trk.query.order_by(Trk.id.desc()).first()
@@ -453,7 +494,7 @@ def login():
             session.permanent = True
             session['type'] = 'user'
             flash("Logged in successfully!")
-            return redirect(url_for('home'))
+            return redirect(url_for('user-dash'))
         else:
             flash("Email or password is incorrect! Try again...")
             form.email.data = '' 
@@ -497,59 +538,57 @@ def format_number_with_commas(number):
 
 
 
+
+@app.route('/save_location', methods=['POST', 'GET'])
+def save_location():
+    data = request.get_json()
+    partner_id = current_user.id
+    new_coord = PartnerSignup.query.get(partner_id)
+    
+    latitude = data['latitude']
+    longitude = data['longitude']
+    
+    new_coord.driver_lat = latitude
+    new_coord.driver_lon = longitude
+    try:
+        db.session.commit()
+    except:
+        flash("oops, There was an error accepting this order...", category='error')
+    
+    return 'Location saved successfully'
+
+
+
+
 @app.route("/company", methods=["POST", "GET"])
 # @app.route("/company/<int:id>", methods=["POST", "GET"])
 @login_required
 def partner_dashboard():
     # redirect to home page if the user current session is "user"
-    if session['type'] == "user":
+    if session['type'] == "user" or None:
         flash("You Must be a partner to access this page", category="error")
         return redirect(url_for("home"))
     elif session['type'] == "partner":
         
-        MAPBOX_API_TOKEN = 'pk.eyJ1IjoiaXNyYWVsZGtuIiwiYSI6ImNsZ2I5ajg5dzAxc2EzZ3BnYzJsYzFidWMifQ.kHIs7ohcJ-ddu250O92saw'
-        
-        order_coordinates = [
-        {'latitude': 9.002145, 'longitude': 7.476796},
-        {'latitude': 9.018082, 'longitude': 7.461078},
-        {'latitude': 9.033934, 'longitude': 7.480969}
-        ]
-
-        # Login rider locations (example)
-        login_rider_locations = [
-            {'latitude': 9.001, 'longitude': 7.474},
-            {'latitude': 9.019, 'longitude': 7.464},
-            {'latitude': 9.034, 'longitude': 7.477}
-        ]
-        
-        # This should dynamically save current rider location to tuple
-        coordinates = ("9.053382,7.484693", "9.053382,7.484693", "9.091400,7.463284")
-        
-        # Query mapbox Matrix API 
-        matrix_api_url = requests.request("GET", f'https://api.mapbox.com/directions-matrix/v1/mapbox/driving/{";".join(coordinates)}?approaches=curb;curb;curb&access_token={MAPBOX_API_TOKEN}')
-        response = matrix_api_url.json()
-        
-        # Extract the durations keyvalue. This will be used to determine the closet rider
-        nearest_riders = response['durations'][0]#['distance']
-        nearest_rider_index = (round(nearest_riders[-1] /60 *30))
-        
-        
+       
         # def a func to say, if rider current lat,lon == nearest_rider_index
         # automatically assign order to the particular rider
         ses = session['type']
-        orders = Orders.query.filter_by(status='pending') 
+        orders = Orders.query.filter_by(status='pending').order_by(Orders.id.desc())
         orders_count = Orders.query.filter_by(driver_id=current_user.id, status='accepted').count()
         orders_sum_req = db.session.query(db.func.sum(Orders.delivery_cost)).filter_by(driver_id=current_user.id, status='accepted').scalar()
+        
+        timestamp = datetime.now()
         
         orders_sum = format_number_with_commas(orders_sum_req)
         
         return render_template('company.html', 
                             orders=orders,
-                            nearest_riders=nearest_riders,
-                            nearest_rider_index=nearest_rider_index,
                             orders_count=orders_count,
                             ses=ses,
-                            orders_sum=orders_sum) 
+                            orders_sum=orders_sum, 
+                            timestamp=timestamp) 
+        
     return render_template('company.html')
     
 
@@ -582,13 +621,7 @@ def track_create():
     return render_template("track-create.html", form=form)
 
 
-#Done, Works!
-@app.route("/user-dash")
-def user_dash():
-    id = 1   #replace id var with 'current-user.id'
-    # query db to get particular user ride requests
-    order_qry = Orders.query.filter(Orders.order.has(id=1)).all()
-    return render_template("user-dash.html", order_qry=order_qry)
+
 
 
 
@@ -727,19 +760,57 @@ def order_accepted(id):
     return redirect(url_for("partner_dashboard"))
 
 
-#Route to create dispatch request
-@app.route("/request-delivery", methods=["POST","GET"])
+
+
+    
+    
+# this is the main home landing page
+# i will create a column on the database to generate and store tracking id which the user can always track their package
+@app.route("/", methods=["POST", "GET"])
+@app.route("/home", methods=["POST", "GET"])
+def home():
+    form = RequestOrderForm(request.form)
+    blog_posts = Post.query.order_by(Post.id.desc()).paginate(per_page=2)
+    # if session['type'] == "NONE" or "none":
+    #     pass
+    #ses = session['type']
+    
+    
+    # redirect to home page if the user current session is "partner"
+    # if session['type'] == "partner":
+    #     flash("You Must login as a User to access this page", category="error")
+    #     return redirect(url_for("login"))
+    
+    
+    return render_template("index.html", 
+                            blog_posts=blog_posts, 
+                            form=form)
+    
+    
+
+@app.route("/user-dash", methods=["POST", "GET"])
 @login_required
-def request_delivery():
-  
+def user_dash():
+    
+    if session['type'] != 'user':
+        flash("You currently do not have permission to access this page!", category='error')
+        return redirect(url_for('home'))
+    
+    # query db to get particular user ride requests
+    user_id = current_user.id
+    order_qry = Orders.query.filter(Orders.order.has(id=user_id)).order_by(Orders.id.desc()).all()
+
     #values in naira
     basecharge = 300
     cost_per_min = 30
     cost_per_km = 70 
+
+    timestamp = datetime.now()
+
+    form = RequestOrderForm(request.form)
     
-    
-    if request.method == "POST" and form.validate():
-        user = current_user.id
+    if request.method == "POST" and form.validate:
+        
         address = form.pickup.data
         address2 = form.dropoff.data
 
@@ -798,53 +869,36 @@ def request_delivery():
         testtime = (round(testtime_api /60))
         
         #calculate the cost formular 
-        testcost = int(testdistance *cost_per_km) + int(testtime *cost_per_min) + int(basecharge)
+        testcost1 = int(testdistance *cost_per_km) + int(testtime *cost_per_min) + int(basecharge)
+        testcost = format_number_with_commas(testcost1)
         
+        timestamp = datetime.now()
+        minutes_ago = calculate_time_difference(timestamp)
+        time_ago = display_time_ago(minutes_ago)
         
-        # Add new order to db
-        order = Orders(placed_by=user,
-                    pickup=address,
-                    dropoff=address2,
-                    user_id=user,
-                    delivery_time=testtime,
-                    delivery_distance=testdistance,
-                    delivery_cost=testcost,
-                    pickup_coord=lat+lon,
-                    dropoff_coord=lat2+lon2)
-        db.session.add(order)
-        db.session.commit()
-        flash("Order Request Created Successfully!", category='success')
-        
-        form.pickup.data = ''
-        form.dropoff.data = ''
-    return redirect(url_for("home"))
-    
-    
-# this is the main home landing page
-# i will create a column on the database to generate and store tracking id which the user can always track their package
-@app.route("/", methods=["POST", "GET"])
-@app.route("/home", methods=["POST", "GET"])
-def home():
-    
-    # redirect to home page if the user current session is "partner"
-    if session['type'] == "partner":
-        flash("You Must login as a User to access this page", category="error")
-        return redirect(url_for("partner_dashboard"))
+        try:
+            # Add new order to db
+            order = Orders(placed_by=user_id,
+                        pickup=address,
+                        dropoff=address2,
+                        user_id=user_id,
+                        delivery_time=testtime,
+                        delivery_distance=testdistance,
+                        delivery_cost=testcost,
+                        pickup_coord=lat+lon,
+                        dropoff_coord=lat2+lon2,
+                        placed_by_id=time_ago)
+            db.session.add(order)
+            db.session.commit()
+            flash("Order Request Created Successfully!", category='success')
+        except:
+            flash("Oops, there was an error somewhere...", category='error')
+            
 
-    
-    form = RequestOrderForm(request.form)
-    ses = session['type']
-    
-    user_id = current_user.id
-    order_qry = Orders.query.filter(Orders.order.has(id=user_id)).all()
-    
-    blog_posts = Post.query.order_by(Post.id.desc()).paginate(per_page=2)
-    
-    return render_template("index.html", 
-                           blog_posts=blog_posts, 
-                           form=form, 
+    return render_template("user-dash.html",
                            order_qry=order_qry,
-                           ses=ses)
+                           form=form,
+                           timestamp=timestamp)
 
 
 # @app.route('/order/<int:order_id>/accept')
@@ -873,8 +927,7 @@ def home():
 # this is meant to be the directions page for the rider receiving the package
 @app.route("/contact")
 def contact():
-    api = requests
-    return render_template("contact.html")
+    return render_template("index9.html")
 
 
 
