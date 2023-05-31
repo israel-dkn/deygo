@@ -129,7 +129,7 @@
     
     <div class="jumbotron jumbotron-fluid mb-5">  
         <div class="container text-center py-5">
-            <h1 class="text-primary mb-4 text-white"> DEY GO! </h1>
+           
             <h1 class="text-white display-3 mb-5">Logistics  Services</h1>
            
 
@@ -491,9 +491,12 @@
                         {% endif %}
                     </span>
 
-
-                    {% if order_qry.partner.username == NONE %}
+                    {% if order_qry.status == 'canceled' %}
+                    <h5 class="card-title"> YOU CANCELED THIS ORDER </h5>
+                    {% elif order_qry.partner.username == NONE %}
                     <h5 class="card-title"><i> waiting for riders to accept request...🚴</i></h5>
+                    
+            
                     {% else %}
                     <h5 class="card-title">Picked Up By: {{ order_qry.partner.username }}</h5>
                     {% endif %}
@@ -501,12 +504,22 @@
                 {% if order_qry.status == 'accepted' %}
                     <p class="card-text">Status: <span class="badge badge-pill p-2 badge-success"> {{ order_qry.status }}   ....🚴</span> </p>
                 
+                {% elif order_qry.status == 'canceled' %}
+                <p class="card-text">Status:<i> <span class="badge badge-pill p-2 badge-danger"> {{ order_qry.status }} </i></span> </p>
+            
                 {% else %}
                     <p class="card-text">Status: <span class="badge badge-pill badge-secondary"> {{ order_qry.status }} </span> </p>
                 {% endif %}
+
+                {% if order_qry.status == 'canceled' %}
+        
+                <p class="card-text"><i><s>Tracking ID: {{ order_qry.track_id }} </p></s></i>
+                
+                {% else %}
                 <p class="card-text">Tracking ID: {{ order_qry.track_id }} <svg xmlns="http://www.w3.org/2000/svg" width="16" height="12" fill="currentColor" class="bi bi-back" viewBox="0 0 16 16">
                     <path d="M0 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2H2a2 2 0 0 1-2-2V2zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H2z"/>
                 </svg></p>
+                {% endif %}
                 <hr style="width:95%;text-align:left;margin-left:0">
                     
                     <p><h6><i class="far fa-dot-circle text-primary mr-3"></i>Pickup: {{ order_qry.pickup }}</h6>
@@ -523,8 +536,12 @@
                     
                 
                 <br>
-                    <a href="#" class="btn btn-primary w-100 p-3">Edit</a>
-                </div>
+                {% if order_qry.status == 'canceled' %}
+                    <a href="{{ url_for('cancel_request', id=order_qry.id)}}" class="btn btn-primary w-100 p-3 disabled">You canceled this request</a>
+                {% else %}
+                <a href="{{ url_for('cancel_request', id=order_qry.id)}}" class="btn btn-primary w-100 p-3">Cancel Request</a>
+                {% endif %}    
+            </div>
             </div>
             </div>
 
@@ -575,29 +592,28 @@
                     <tbody>
                         <!-- Item -->
                         {% for order_qry in order_qry %}
+                        {% if order_qry.status == 'canceled' %}
+                         <!-- if order is cabcelled, strikethrough all items on the column -->
                         <tr>
-                            
                             <td><a href="#" class="text-primary fw-bold">{{ order_qry.id }}</a> </td>
                             <td class="fw-bold d-flex align-items-center">
-                               {{ order_qry.time_created.strftime("%m/%d/%Y, %H:%M:%S") }}
+                                <s><i> {{ order_qry.time_created.strftime("%m/%d/%Y, %H:%M:%S") }}</s>
                             </td>
 
                             
                             <td>
-                                {{ order_qry.track_id }}
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="10" fill="currentColor" class="bi bi-back" viewBox="0 0 16 16">
-                                    <path d="M0 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2H2a2 2 0 0 1-2-2V2zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H2z"/>
-                                  </svg>
+                                <s><i>{{ order_qry.track_id }}</s>
+                                
                             </td>
                             
 
                             <td>
-                                {{ order_qry.pickup }} 
+                                <s><i>{{ order_qry.pickup }} 
                             </td>
 
 
                             <td>
-                                {{ order_qry.dropoff}}
+                                <s><i>{{ order_qry.dropoff}}
                             </td>
 
                             <td>
@@ -605,14 +621,51 @@
                             </td>
 
                             <td>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person-circle" viewBox="0 0 16 16">
-                                    <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
-                                    <path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z"/>
-                                  </svg>
-                                {{ order_qry.partner.username}}
+                               
+                                <s><i>canceled
                             </td>
-                         
-                           
+                        
+                         {% else %}
+                         <s>
+                            <tr>
+                                
+                                <td><a href="#" class="text-primary fw-bold">{{ order_qry.id }}</a> </td>
+                                <td class="fw-bold d-flex align-items-center">
+                                   {{ order_qry.time_created.strftime("%m/%d/%Y, %H:%M:%S") }}
+                                </td>
+    
+                                
+                                <td>
+                                    {{ order_qry.track_id }}
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="10" fill="currentColor" class="bi bi-back" viewBox="0 0 16 16">
+                                        <path d="M0 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2H2a2 2 0 0 1-2-2V2zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H2z"/>
+                                      </svg>
+                                </td>
+                                
+    
+                                <td>
+                                    {{ order_qry.pickup }} 
+                                </td>
+    
+    
+                                <td>
+                                    {{ order_qry.dropoff}}
+                                </td>
+    
+                                <td>
+                                    {{ order_qry.status}}
+                                </td>
+    
+                                <td>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person-circle" viewBox="0 0 16 16">
+                                        <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
+                                        <path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z"/>
+                                      </svg>
+                                    {{ order_qry.partner.username}}
+                                </td>
+                             
+                        
+                        {% endif %}
                         {% endfor %}
                       
                         <!-- End of Item -->
