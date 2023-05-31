@@ -492,7 +492,7 @@ def login():
             session.permanent = True
             session['type'] = 'user'
             flash("Logged in successfully!")
-            return redirect(url_for('user-dash'))
+            return redirect(url_for('user_dash'))
         else:
             flash("Email or password is incorrect! Try again...")
             form.email.data = '' 
