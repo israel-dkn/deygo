@@ -10,8 +10,7 @@ from flask_login import login_user, UserMixin, LoginManager, login_required, log
 import random, string
 import json
 from flask_socketio import SocketIO, emit, join_room, leave_room, send
-from geopy.geocoders import Nominatim
-import geocoder
+
 # from rider import rider_page
 
 db = SQLAlchemy()
@@ -25,7 +24,6 @@ app.config["SECRET_KEY"] = "my secret key"
 tomtom_admin_key = "PUuQt6512jSNCD3gdu00VxzYAsKQ7VDo2XrJoPvGhhhNoSl0"
 tomtom_api_key = "JoBjMY24siY0bENUY5g52SLXouAaf4FX"
 socketio = SocketIO(app)
-geolocator = Nominatim(user_agent="deygologapp")
 db.init_app(app)
 
 
@@ -762,7 +760,31 @@ def order_accepted(id):
 
 
 
+
+@app.route("/cancel/request/<int:id>")
+@login_required
+def cancel_request(id):
+    user_id = current_user.id
+    cancel_request = Orders.query.get(id)
     
+    
+    if cancel_request.status == "accepted":
+        flash("You cannot cancel this request, a rider has accepted it already...", category="error")
+        return redirect(url_for("user_dash"))
+    else:
+        cancel_request.status = 'canceled'
+        try:
+            db.session.commit()
+            flash(" Your Order has been canceled!", category='success')
+            return redirect(url_for("user_dash"))
+        except:
+            flash("oops, There was an error canceling this order...", category='error')
+        
+    return redirect(url_for("user_dash"))
+
+
+
+
     
 # this is the main home landing page
 # i will create a column on the database to generate and store tracking id which the user can always track their package
