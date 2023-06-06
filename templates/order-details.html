@@ -1,9 +1,361 @@
-{% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <ul class=flashes>
-    {% for message in messages %}
-      <li>{{ message }}</li>
-    {% endfor %}
-    </ul>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    {% block title%}<title>Compnay Profile</title>{% endblock %}
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="Free HTML Templates" name="keywords">
+    <meta content="Free HTML Templates" name="description">
+
+    <!-- Favicon -->
+    <link href="img/favicon.ico" rel="icon">
+
+    <!-- Google Web Fonts -->
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Libraries Stylesheet -->
+    <link href="lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
+
+    <!-- Customized Bootstrap Stylesheet -->
+    
+    
+    
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+</head>
+<link type="text/css" href="{{ url_for('static', filename="volt.css") }}" rel="stylesheet">
+
+<body>
+    <div class="sticky-top">
+        {% with messages = get_flashed_messages(with_categories=true) %} {% if
+            messages %} {% for category, message in messages %} {% if category ==
+            'error' %}
+            <div class="alert alert-danger alter-dismissable fade show" role="alert">
+              {{ message }}
+              <button type="button" class="close" data-dismiss="alert">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            {% else %}
+            <div class="alert alert-success alter-dismissable fade show" role="alert">
+              {{ message }}
+              <button type="button" class="close" data-dismiss="alert">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            {% endif %} {% endfor %} {% endif %} {% endwith %}
+        </div>
+
+<!--Test Script for location -->
+<script>
+    async function getLocation() {
+        return new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject);
+        });
+    }
+
+    async function sendLocation(latitude, longitude) {
+        const url = '/save_location';
+        const data = {
+            latitude: latitude,
+            longitude: longitude
+        };
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        const result = await response.text();
+        console.log(result);
+    }
+
+    async function trackLocation() {
+        try {
+            const position = await getLocation();
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+            await sendLocation(latitude, longitude);
+        } catch (error) {
+            console.error(error);
+
+        } finally {
+            // Schedule the next location update after a delay (e.g., 30 seconds)
+            setTimeout(trackLocation, 30000);
+        }
+    }
+        
+    
+ // Start tracking location immediately
+ trackLocation();
+    setInterval(trackLocation, 30000); // Track location every 30 seconds
+</script>
+
+
+
+    <!-- Topbar Start -->
+    <div class="container-fluid bg-dark">
+        <div class="row py-2 px-lg-5">
+            <div class="col-lg-6 text-center text-lg-left mb-2 mb-lg-0">
+                <div class="d-inline-flex align-items-center text-white">
+                    <small><i class="fa fa-phone-alt mr-2"></i>+012 345 6789</small>
+                    <small class="px-3">|</small>
+                    <small><i class="fa fa-envelope mr-2"></i>info@example.com</small>
+                </div>
+            </div>
+            <div class="col-lg-6 text-center text-lg-right">
+                <div class="d-inline-flex align-items-center">
+                    <a class="text-white px-2" href="">
+                        <i class="fab fa-facebook-f"></i>
+                    </a>
+                    <a class="text-white px-2" href="">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    <a class="text-white px-2" href="">
+                        <i class="fab fa-linkedin-in"></i>
+                    </a>
+                    <a class="text-white px-2" href="">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                    <a class="text-white pl-2" href="">
+                        <i class="fab fa-youtube"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Topbar End -->
+
+    <div  style="text-align: middle;">
+        <nav style="--bs-breadcrumb-divider: url(&#34;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M2.5 0L1 1.5 3.5 4 1 6.5 2.5 8l4-4-4-4z' fill='currentColor'/%3E%3C/svg%3E&#34;);" aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li> <a href="/home"  >
+                      <h1 class=" text-uppercase text-primary mr-3"><i class="fa fa-truck mr-2 ml-4"></i>DEYGO!</h1>
+                </a></li>
+             </ol>
+          </nav>
+        </div>
+        
+    <!-- Navbar Start -->
+    <div class="jumbotron1 jumbotron-fluid mb-5 py-9 ">
+        
+        <div class=" text-center py-5 ">
+            <h1 class="text-white display-3 mb-5"><a href="https://www.google.com/maps/dir/?api=1&origin={{latitude}},{{longitude}}&destination={{dst_latitude}},{{dst_longitude}}" target="_blank">view in Google Maps</a></h1>
+               
+        </div>
+    </div>
+
+    <div class="justify-content-center ">
+        
+    </div>
+    
+    <!-- 
+    <div class="container my-5 sticky-top">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb breadcrumb-custom overflow-hidden text-center bg-body-tertiary border rounded-3">
+            <li class="breadcrumb-item">
+              <a class="link-body-emphasis fw-semibold text-decoration-none" href="#">
+                <svg class="bi" width="16" height="16"><use xlink:href="#house-door-fill"></use></svg>
+                Home
+              </a>
+            </li>
+            <li class="breadcrumb-item">
+              <a class="link-body-emphasis fw-semibold text-decoration-none" href="#">Library</a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">
+              Data
+            </li>
+          </ol>
+        </nav>
+      </div>
+Navbar End -->
+
+    <div class="container">
+        <div class="card">
+            <div class="card-body">
+                <p class="card-text"><small>
+                    <span class="text-success">●</span>{% set variable1 = timestamp %}
+                    {% set variable2 = orders.time_created %}
+                
+    
+                    {% set result = variable1 - variable2 %}
+    
+                    
+    
+                    {% set result2 = result/60 %}
+    
+                    
+                    {% set resultmin = result2|total_seconds %}
+                    {% set hours = resultmin/60 %}
+                    {% set days = resultmin/1440 %}
+                    
+                    {% if resultmin|int < 1 %} just now
+                    {% elif resultmin|int == 1 %} 1 min ago
+                    {% elif resultmin|int < 60  %} {{ resultmin|int }} min ago
+                    {% elif resultmin|int < 1440 %} {{ hours|int }} hour(s) ago
+                    {% else %} {{ days|int }} days ago
+                    {% endif %}
+    
+                </span> </small></p>
+                <img class="card-img-top" style= "height:70px; width:70px; border-radius: 50%;" src="{{ url_for('static', filename='team-1.jpg') }}" alt="">
+                <span class="card-text ml-2 "><h5 style= "display: inline;">{{orders.order.full_name}}</h5></span>
+           
+            <hr style="width:95%;text-align:left;margin-left:0">
+               
+                <p><h6><i class="far fa-dot-circle text-primary mr-3"></i><small>Pickup:</small> {{ orders.pickup }} </h6>
+                <p><h6><i class="far fa-dot-circle text-primary mr-3"></i><small>Deliver:</small> {{ orders.dropoff }} </h6>
+                    
+                
+                    <label><small>Customer Message:</small></label>
+        <textarea class="form-control">{{dst_latitude}},{{dst_longitude}}:{{latitude}},{{longitude}}</textarea>
+
+            <p><h6><i class="far fa-dot-circle text-primary mr-3"></i><small>Delivery Time:</small><b> {{orders.delivery_time}} mins</h6>
+                <p><h6><i class="far fa-dot-circle text-primary mr-3"></i><small>Delivery Distance:</small><b> {{orders.delivery_distance}} km </h6>
+                  
+        
+                
+                    <hr style="width:95%;text-align:left;margin-left:0">
+                    <div class="d-flex justify-content-center">  
+                        <div class="ml-4"><small>ETA:</small><b> {{testtime}} mins</b></div>
+                        
+                    </div>
+            <br>
+            <div class="d-flex justify-content-center"> 
+            <a href="#" class="btn btn-outline-primary btn-lg w-50 rounded text-left"><span class="text-left"><small>Price: </small><b> {{orders.delivery_cost}}</b></span><small class="ml-4">| Order Picked Up</small></a>
+                <a href="#" class="btn btn-primary ml-2 btn-lg w-50 rounded"><small>Call: </small>{{orders.order.phone}}</a>
+            </div>
+            </div>
+        </div>
+        </div>
+
+
+
+{% if orders.id == 12 %}
+<div class="toast-container position-static">
+    <div class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-header">
+        <img src="..." class="rounded me-2" alt="...">
+        <strong class="me-auto">Bootstrap</strong>
+        <small class="text-body-secondary">just now</small>
+        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+      <div class="toast-body">
+        See? Just like this.
+      </div>
+    </div>
+  
+    <div class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-header">
+        <img src="..." class="rounded me-2" alt="...">
+        <strong class="me-auto">Bootstrap</strong>
+        <small class="text-body-secondary">2 seconds ago</small>
+        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+      <div class="toast-body">
+        Heads up, toasts will stack automatically
+      </div>
+    </div>
+  </div>
   {% endif %}
-{% endwith %}
+
+
+
+    <!-- Footer Start -->
+    <div class="container-fluid bg-dark text-white mt-5 py-5 px-sm-3 px-md-5">
+      <div class="row pt-5">
+          <div class="col-lg-7 col-md-6">
+              <div class="row">
+                  <div class="col-md-6 mb-5">
+                      <h3 class="text-primary mb-4">Get In Touch</h3>
+                      <p><i class="fa fa-map-marker-alt mr-2"></i>123 Street, New York, USA</p>
+                      <p><i class="fa fa-phone-alt mr-2"></i>+012 345 67890</p>
+                      <p><i class="fa fa-envelope mr-2"></i>info@example.com</p>
+                      <div class="d-flex justify-content-start mt-4">
+                          <a class="btn btn-outline-light btn-social mr-2" href="#"><i class="fab fa-twitter"></i></a>
+                          <a class="btn btn-outline-light btn-social mr-2" href="#"><i class="fab fa-facebook-f"></i></a>
+                          <a class="btn btn-outline-light btn-social mr-2" href="#"><i class="fab fa-linkedin-in"></i></a>
+                          <a class="btn btn-outline-light btn-social" href="#"><i class="fab fa-instagram"></i></a>
+                      </div>
+                  </div>
+                  <div class="col-md-6 mb-5">
+                      <h3 class="text-primary mb-4">Quick Links</h3>
+                      <div class="d-flex flex-column justify-content-start">
+                          <a class="text-white mb-2" href="#"><i class="fa fa-angle-right mr-2"></i>Home</a>
+                          <a class="text-white mb-2" href="#"><i class="fa fa-angle-right mr-2"></i>About Us</a>
+                          <a class="text-white mb-2" href="#"><i class="fa fa-angle-right mr-2"></i>Our Services</a>
+                          <a class="text-white mb-2" href="#"><i class="fa fa-angle-right mr-2"></i>Pricing Plan</a>
+                          <a class="text-white" href="#"><i class="fa fa-angle-right mr-2"></i>Contact Us</a>
+                      </div>
+                  </div>
+              </div>
+          </div>
+          <div class="col-lg-5 col-md-6 mb-5">
+              <h3 class="text-primary mb-4">Newsletter</h3>
+              <p>Rebum labore lorem dolores kasd est, et ipsum amet et at kasd, ipsum sea tempor magna tempor. Accu kasd sed ea duo ipsum. Dolor duo eirmod sea justo no lorem est diam</p>
+              <div class="w-100">
+                  <div class="input-group">
+                      <input type="text" class="form-control border-light" style="padding: 30px;" placeholder="Your Email Address">
+                      <div class="input-group-append">
+                          <button class="btn btn-primary px-4">Sign Up</button>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </div>
+  </div>
+  <div class="container-fluid bg-dark text-white border-top py-4 px-sm-3 px-md-5" style="border-color: #3E3E4E !important;">
+      <div class="row">
+          <div class="col-lg-6 text-center text-md-left mb-3 mb-md-0">
+              <p class="m-0 text-white">&copy; <a href="#">Your Site Name</a>. All Rights Reserved. 
+      
+      <!--/*** This template is free as long as you keep the footer author’s credit link/attribution link/backlink. If you'd like to use the template without the footer author’s credit link/attribution link/backlink, you can purchase the Credit Removal License from "https://htmlcodex.com/credit-removal". Thank you for your support. ***/-->
+      Designed by <a href="https://htmlcodex.com">HTML Codex</a>
+              </p>
+          </div>
+          <div class="col-lg-6 text-center text-md-right">
+              <ul class="nav d-inline-flex">
+                  <li class="nav-item">
+                      <a class="nav-link text-white py-0" href="#">Privacy</a>
+                  </li>
+                  <li class="nav-item">
+                      <a class="nav-link text-white py-0" href="#">Terms</a>
+                  </li>
+                  <li class="nav-item">
+                      <a class="nav-link text-white py-0" href="#">FAQs</a>
+                  </li>
+                  <li class="nav-item">
+                      <a class="nav-link text-white py-0" href="#">Help</a>
+                  </li>
+              </ul>
+          </div>
+      </div>
+  </div>
+  <!-- Footer End -->
+
+
+  <!-- Back to Top -->
+  <a href="#" class="btn btn-lg btn-primary back-to-top"><i class="fa fa-angle-double-up"></i></a>
+
+
+  <!-- JavaScript Libraries -->
+  <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.bundle.min.js"></script>
+  <script src="lib/easing/easing.min.js"></script>
+  <script src="lib/waypoints/waypoints.min.js"></script>
+  <script src="lib/counterup/counterup.min.js"></script>
+  <script src="lib/owlcarousel/owl.carousel.min.js"></script>
+
+  <!-- Contact Javascript File -->
+  <script src="mail/jqBootstrapValidation.min.js"></script>
+  <script src="mail/contact.js"></script>
+
+  <!-- Template Javascript -->
+  <script src="js/main.js"></script>
+</body>
+
+</html>

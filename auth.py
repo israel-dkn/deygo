@@ -10,20 +10,24 @@ from flask_login import login_user, UserMixin, LoginManager, login_required, log
 import random, string
 import json
 from flask_socketio import SocketIO, emit, join_room, leave_room, send
+from flask_migrate import Migrate
 
-# from rider import rider_page
+
 
 db = SQLAlchemy()
 app = Flask(__name__)
+migrate = Migrate(app, db)
 # app.register_blueprint(rider_page, url_prefix='/rider')
 DB_NAME = "database.db"
 site_name="DEY GO"
 app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_NAME}"
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 secret_key = "IgVnWnSwmS0LN4RtKaaCubIiFCG2Iq0FSFDqJaboBy0eXHakp0jHFQ"
 app.config["SECRET_KEY"] = "my secret key"
 tomtom_admin_key = "PUuQt6512jSNCD3gdu00VxzYAsKQ7VDo2XrJoPvGhhhNoSl0"
 tomtom_api_key = "JoBjMY24siY0bENUY5g52SLXouAaf4FX"
-socketio = SocketIO(app)
+async_mode = None
+#socketio = SocketIO(app, async_mode=async_mode)
 db.init_app(app)
 
 
@@ -295,14 +299,86 @@ class TrackTestForm(FlaskForm):
 #
 #
 #
-
+ 
 # <---- All test routes will go here ---->
 
 
 
-@app.route("/html1")
-def html1():
-    return render_template("html1.html")
+@app.route("/order/details/<int:id>")
+@login_required
+def order_details(id):
+    orders = Orders.query.get(id)
+    access = orders.driver_id
+    
+    if current_user.id == access:
+        timestamp = datetime.now()
+        partner_id = current_user.id
+        
+        partner_loc = PartnerSignup.query.get(partner_id)
+        
+        new_coord = Orders.query.filter(Orders.order.has(id=partner_id))
+        
+        latitude = (float(partner_loc.driver_lat))
+        longitude = (float(partner_loc.driver_lon))
+        
+        dst_latitude = (float(orders.pickup_coord))
+        dst_longitude = (float(orders.dropoff_coord))
+        
+        
+        url = "https://api.tomtom.com/routing/matrix/2"
+
+        querystring = {"key":"JoBjMY24siY0bENUY5g52SLXouAaf4FX"}
+
+        payload = {
+            "origins": [{"point": {
+                        "latitude": latitude,
+                        "longitude": longitude
+                    }}],
+            
+            "destinations": [{"point": {
+                        "latitude": dst_latitude,
+                        "longitude": dst_longitude 
+                    }}],
+            
+            "options": {
+                "departAt": "now",
+                "routeType": "fastest",
+                "traffic": "live",
+                "travelMode": "car",
+                "vehicleMaxSpeed": 70,
+                "vehicleWeight": 0,
+                "vehicleAxleWeight": 0,
+                "vehicleLength": 0,
+                "vehicleWidth": 0,
+                "vehicleHeight": 0,
+                "vehicleCommercial": False
+            }
+        }
+        headers = {"Content-Type": "application/json"}
+
+        request2 = requests.request("POST", url, json=payload, headers=headers, params=querystring)
+        response2 = request2.json()
+        
+        #query the json and get the travel distance and time
+        #testdistance_api = response2['data'][0]['routeSummary']['lengthInMeters']
+        testtime_api = response2['data'][0]['routeSummary']['travelTimeInSeconds']
+        
+        #format the values and round to whole number
+        #testdistance = (round(testdistance_api /1000))
+        testtime = (round(testtime_api /60))
+        
+        
+        return render_template("order-details.html",
+                            orders=orders,
+                            timestamp=timestamp,
+                            testtime=testtime,
+                            latitude=latitude,
+                            dst_longitude=dst_longitude,
+                            dst_latitude=dst_latitude,
+                            longitude=longitude)
+    else:
+        flash("Error...Not Allowed", category='error')
+        return redirect(url_for("partner_dashboard"))
 
 
 def total_seconds_filter(td):
@@ -340,6 +416,8 @@ def display_time_ago(minutes):
 def index1():
     trk_id = Trk.query.order_by(Trk.id.desc()).first()
     return render_template("tracking.html", trk_id=trk_id)
+
+
 
 # code snippet from https://tutorial101.blogspot.com/2020/03/python-flask-sqlalchemy-search-like.html?m=1
 @app.route('/db', methods=['GET', 'POST'], defaults={"page1": 1}) 
@@ -556,6 +634,14 @@ def save_location():
     return 'Location saved successfully'
 
 
+@app.route("/rider/view/<int:id>")
+def view_driver(id):
+    driver = PartnerSignup.query.get(id)
+    orders_count = Orders.query.filter_by(driver_id=id, status='accepted').count()
+    return render_template("view-driver.html",
+                           driver=driver,
+                           orders_count=orders_count)
+
 
 
 @app.route("/company", methods=["POST", "GET"])
@@ -563,6 +649,7 @@ def save_location():
 @login_required
 def partner_dashboard():
     # redirect to home page if the user current session is "user"
+    partner_id = current_user.id
     if session['type'] == "user" or None:
         flash("You Must be a partner to access this page", category="error")
         return redirect(url_for("home"))
@@ -573,19 +660,40 @@ def partner_dashboard():
         # automatically assign order to the particular rider
         ses = session['type']
         orders = Orders.query.filter_by(status='pending').order_by(Orders.id.desc())
-        orders_count = Orders.query.filter_by(driver_id=current_user.id, status='accepted').count()
-        orders_sum_req = db.session.query(db.func.sum(Orders.delivery_cost)).filter_by(driver_id=current_user.id, status='accepted').scalar()
+        orders_count = Orders.query.filter_by(driver_id=partner_id, status='accepted').count()
+        orders_sum = db.session.query(db.func.sum(Orders.delivery_cost)).filter_by(driver_id=current_user.id, status='accepted').scalar()
+        order_qry = Orders.query.filter(Orders.partner.has(id=partner_id)).order_by(Orders.id.desc()).all()
         
         timestamp = datetime.now()
         
-        orders_sum = format_number_with_commas(orders_sum_req)
+        # orders_sum = format_number_with_commas(orders_sum_req)
+   
+        # lat_lon = {}
+        # records = PartnerSignup.query.all()
+        # for lat_lons in records:
+        #     lat_lon[lat_lons.id] = [ float(lat_lons.driver_lat), float(lat_lons.driver_lon)]
+                
+        # target_point = [9.052185, 7.485223]
+        # nearest_point = None
+        # min_distance = float('inf')
+
+        # for point_name, coords in lat_lon.items():
+        #     lat = coords[0]
+        #     lon = coords[1]
+        #     distance = ((lat - target_point[0]) ** 2 + (lon - target_point[1]) ** 2) ** 0.5
+        #     if distance < min_distance:
+        #         min_distance = distance
+        #         nearest_point = point_name
+
+        # nearest_coordinates = lat_lon[nearest_point]
         
         return render_template('company.html', 
                             orders=orders,
                             orders_count=orders_count,
                             ses=ses,
                             orders_sum=orders_sum, 
-                            timestamp=timestamp) 
+                            timestamp=timestamp,
+                            order_qry=order_qry) 
         
     return render_template('company.html')
     
@@ -737,28 +845,68 @@ def blog():
 
 # Done! Completed
 @app.route("/order/accept/<int:id>")
+@login_required
 def order_accepted(id):
     accepted_by = current_user.id
     order_accept = Orders.query.get(id)
-    # to ensue rides are not accepted by multiple drivers
-    if order_accept.status == "accepted":
+    access = order_accept.driver_id
+    
+    lat_lon = {}
+    riders_qry = PartnerSignup.query.all()
+    for lat_lons in riders_qry:
+        lat_lon[lat_lons.id] = [ float(lat_lons.driver_lat), float(lat_lons.driver_lon)]
+                
+    pickup_coord = [float(order_accept.pickup_coord), float(order_accept.dropoff_coord)]
+    nearest_rider = None
+    min_distance = float('inf')
+
+    for driver_id, coords in lat_lon.items():
+        lat = coords[0]
+        lon = coords[1]
+        distance = ((lat - pickup_coord[0]) ** 2 + (lon - pickup_coord[1]) ** 2) ** 0.5
+        if distance < min_distance:
+            min_distance = distance
+            nearest_rider = driver_id
+            
+    nearest_rider_list = [nearest_rider]
+
+    nearest_coordinates = lat_lon[nearest_rider]
+    
+    print(nearest_rider)
+    print(nearest_rider_list)
+    
+    if order_accept.status == "accepted" and current_user.id != access:
         flash("Oopss! Order Accepted by another rider...", category="error")
         return redirect(url_for("partner_dashboard"))
-    else:
+            
+        # to ensure rides are not accepted by multiple drivers
+    elif order_accept.status == "pending":
         order_accept.status = 'accepted'
         order_accept.driver_id = accepted_by
         order_accept.accepted_by = accepted_by
         try:
             db.session.commit()
             flash("Order Accepted!", category='success')
-            return redirect(url_for("partner_dashboard"))
+            return redirect(url_for("order_details", 
+                                    id=id))
         except:
             flash("oops, There was an error accepting this order...", category='error')
-        
-    return redirect(url_for("partner_dashboard"))
-
-
-
+    
+    elif order_accept.status == "accepted" and current_user.id == access:
+        flash("Order has already been accepted by you!")
+        return redirect(url_for("order_details", 
+                                    id=id))
+   
+    
+    if accepted_by in nearest_rider_list:
+        pass
+    else:
+        flash("Oopss! You are too far away to accept this order", category="error")
+        #return redirect(url_for("partner_dashboard"))
+    
+    return redirect(url_for("order_details"))
+    
+   
 
 
 @app.route("/cancel/request/<int:id>")
@@ -809,11 +957,14 @@ def home():
                             form=form)
     
     
+    
+
+            
 
 @app.route("/user-dash", methods=["POST", "GET"])
 @login_required
 def user_dash():
-    
+    condition = True
     if session['type'] != 'user':
         flash("You currently do not have permission to access this page!", category='error')
         return redirect(url_for('home'))
@@ -907,8 +1058,8 @@ def user_dash():
                         delivery_time=testtime,
                         delivery_distance=testdistance,
                         delivery_cost=testcost,
-                        pickup_coord=lat+lon,
-                        dropoff_coord=lat2+lon2,
+                        pickup_coord=lat,
+                        dropoff_coord=lon,
                         placed_by_id=time_ago)
             db.session.add(order)
             db.session.commit()
@@ -920,7 +1071,8 @@ def user_dash():
     return render_template("user-dash.html",
                            order_qry=order_qry,
                            form=form,
-                           timestamp=timestamp)
+                           timestamp=timestamp,
+                           condition=condition)
 
 
 # @app.route('/order/<int:order_id>/accept')
@@ -972,33 +1124,66 @@ def not_found_error(error):
 
 
 
-@socketio.on("message")
-def message(data):
-    room = session.get("room")
+# @socketio.on("message")
+# def message(data):
+#     room = session.get("room")
    
-    content = {
-        "name": session.get("name"),
-        "message": data["data"]
-    }
-    send(content, to=room)
-    #rooms[room]["messages"].append(content)
-    print(f"{session.get('name')} said: {data['data']}")
+#     content = {
+#         "name": session.get("name"),
+#         "message": data["data"]
+#     }
+#     send(content, to=room)
+#     #rooms[room]["messages"].append(content)
+#     print(f"{session.get('name')} said: {data['data']}")
 
 
-@socketio.on("connect")
-def connect(auth):
-    if session['type'] == "partner":
-        idd = current_user.id
-        partner = PartnerSignup.query.get(idd)
-        join_room(partner)
+# @socketio.on("changed", namespace='/test')
+# def changed(data):
+#     orderqry = Orders.query.filter_by(status = "accepted").all()
+#     message1 = "hello receiver"
+#     for orders in orderqry:
+#         if orders.status == 'accepted':
+#             emit('status_changed', {'message': 'accept1.'})
+#         elif orders.status == 'pending':
+#             emit('status_changed', {'message': 'pending1.'})
+#         else:
+#             emit('status_changed', {'message': 'Declined1.'})
+
+#     emit('changed', {'message1': message1}, broadcast=True)
+#     print("sent msg")
+    # for orderqrys in orderqry:
+    #     if orderqrys.status == 'pending':
+    #         emit('status_changed', {'message': 'Status changed to accept.'}, broadcast=True)
+    #     else:
+    #         emit('status_changed', {'message': 'Declined.'})
+   
+            
 
 
-@socketio.on("disconnect")
-def disconnect():
-    if session['type'] == "partner":
-        idd = current_user.id
-        partner = PartnerSignup.query.get(idd)
-        leave_room(partner)
+# @socketio.on("connect")
+# def connect():
+#     user_id = current_user.full_name
+#     message1 = "hello receivr2"
+#     print("connected frm" + user_id)
+#     while True:
+#         orderqry = Orders.query.filter(Orders.order.has(id=user_id)).filter_by(status='accepted').all()
+#         for orders in orderqry:
+#             if orders.status == 'accepted':
+#                 emit('status_changed', {'message': 'accept.'})
+#             elif orders.status == 'pending':
+#                 emit('status_changed', {'message': 'pending.'})
+#             else:
+#                 emit('status_changed', {'message': 'Declined.'})
+
+#         emit('changed', {'message1': message1}, broadcast=True)
+        
+#         socketio.sleep(12)
+    
+
+
+# @socketio.on("disconnect")
+# def disconnect():
+#     print("Disconnected frm")
 
 
 

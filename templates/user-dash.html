@@ -118,6 +118,9 @@
                     <a href="/contact" class="nav-item nav-link">Contact</a>
                 </div>
                 <a href="" class="btn btn-primary py-2 px-4 d-none d-lg-block disabled">USER DASH</a>
+                <li class="nav-item ms-2 d-none d-sm-block">
+					<a href="#" class="btn btn-sm btn-primary-soft mb-0"><i class="fa-solid fa-right-to-bracket me-2"></i>Sign Up</a>
+				</li>
             </div>
         </nav>
     </div>
@@ -333,13 +336,13 @@
                         </hr>
                                         <div class="text-center p-4">
                                             <h1 class="display-4 mb-0">
-                                                <small class="align-top text-muted font-weight-medium" style="font-size: 22px; line-height: 45px;">₦</small>{{nearest_rider_index}}<small class="align-bottom text-muted font-weight-medium" style="font-size: 16px; line-height: 40px;"> EST</small>
+                                                <small class="align-top text-muted font-weight-medium" >DEYGO!</small>
                                             </h1>
                                         </div>
                                     
                         
                             <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                <button type="button" class="btn btn-outline-primary" data-dismiss="modal">Close</button>
                                 {{ form.submit(class="btn1 btn1-primary p-2") }}
                                 
                             
@@ -359,7 +362,7 @@
     <!-- Header End -->
 
 
-    <div class="container card">
+    <div class="container-fluid card">
         <div class="card-body">
     
           <!-- Card -->
@@ -451,7 +454,33 @@
 
 <br>
 <br>
+<h4 id="demo1">.||.</h4>
 
+<!--
+<script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.0/socket.io.min.js"></script>
+    
+<script type="text/javascript" charset="utf-8">
+    // namespace = '/test';
+    //var socket = io.connect('http://127.0.0.1:5000');
+
+    socket.on('connect', function() {
+        console.log('Socket connected1');
+    });
+    socket.emit('changed');
+
+    socket.on('status_changed', function(data) {
+        var statusElement = document.getElementById("status_chg");
+        var receivedVariable = data.message1;
+        statusElement.innerHTML = receivedVariable;
+        console.log('Received variable:', receivedVariable);
+    });
+    var statusElement = document.getElementById("demo1");
+    statusElement.innerHTML = "received2"
+</script>
+-->
+
+
+           
 
 <div class="container card">
     <div class="card-body">
@@ -498,12 +527,14 @@
                     
             
                     {% else %}
-                    <h5 class="card-title">Picked Up By: {{ order_qry.partner.username }}</h5>
+                    <h5 class="card-title">Picked Up By: <a href="{{url_for("view_driver", id=order_qry.partner.id )}}">{{ order_qry.partner.username }}</a></h5>
                     {% endif %}
                 
+                    
+                   
                 {% if order_qry.status == 'accepted' %}
                     <p class="card-text">Status: <span class="badge badge-pill p-2 badge-success"> {{ order_qry.status }}   ....🚴</span> </p>
-                
+                    
                 {% elif order_qry.status == 'canceled' %}
                 <p class="card-text">Status:<i> <span class="badge badge-pill p-2 badge-danger"> {{ order_qry.status }} </i></span> </p>
             
@@ -537,19 +568,40 @@
                 
                 <br>
                 {% if order_qry.status == 'canceled' %}
-                    <a href="{{ url_for('cancel_request', id=order_qry.id)}}" class="btn btn-primary w-100 p-3 disabled">You canceled this request</a>
+                    <a href="" class="btn btn-primary w-100 p-3 disabled">You canceled this request</a>
                 {% else %}
-                <a href="{{ url_for('cancel_request', id=order_qry.id)}}" class="btn btn-primary w-100 p-3">Cancel Request</a>
+                <!-- Button trigger modal -->
+                <a class="btn btn-primary w-100 p-3" data-toggle="modal" data-target="#cancel-request-modal{{ order_qry.id }}">Cancel Request</a>
+                   <!-- Modal -->
+                    <div class="modal fade" id="cancel-request-modal{{ order_qry.id }}" tabindex="-1" role="dialog" aria-labelledby="cancel-request-modal" aria-hidden="true">
+                        <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                            <h5 class="modal-title" id="exampleModalLabel"><small>Cancel Request </small>#{{ order_qry.track_id }}</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                            </div>
+                            <div class="modal-body">
+                            Are you sure you want to cancel this request?
+                            </div>
+                            <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-primary" data-dismiss="modal">Back</button>
+                            <a href="{{ url_for('cancel_request', id=order_qry.id)}}" type="button" class="btn btn-primary">Cancel Request</a>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
                 {% endif %}    
             </div>
-            </div>
-            </div>
+        </div>
+    </div>
 
             <br>
             {% endfor %}
    
-            {%endif%}
-</div>
+        {%endif%}
+    </div>
 </div>
 
 <!--End New Ride Requests-->
@@ -608,25 +660,25 @@
                             
 
                             <td>
-                                <s><i>{{ order_qry.pickup }} 
+                                <s><i>{{ order_qry.pickup }} </s>
                             </td>
 
 
                             <td>
-                                <s><i>{{ order_qry.dropoff}}
+                                <s><i>{{ order_qry.dropoff}}</s>
                             </td>
 
                             <td>
-                                {{ order_qry.status}}
+                                <span class="badge badge-pill p-2 badge-danger">   {{ order_qry.status}}</span>
                             </td>
 
                             <td>
                                
-                                <s><i>canceled
+                                <s><i>canceled</i></s>
                             </td>
                         
                          {% else %}
-                         <s>
+                         
                             <tr>
                                 
                                 <td><a href="#" class="text-primary fw-bold">{{ order_qry.id }}</a> </td>
