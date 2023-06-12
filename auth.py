@@ -1067,6 +1067,7 @@ def home():
     
 
 
+
 @app.route("/user-dash/credit-account/<int:id>/<int:amount>", methods=["POST", "GET"])
 @login_required_user
 def credit_account(id, amount):
