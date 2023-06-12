@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    {% block title%}<title>Compnay Profile</title>{% endblock %}
+    {% block title%}<title>Order Details</title>{% endblock %}
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <meta content="Free HTML Templates" name="keywords">
     <meta content="Free HTML Templates" name="description">
@@ -203,7 +203,7 @@ Navbar End -->
     
                 </span> </small></p>
                 <img class="card-img-top" style= "height:70px; width:70px; border-radius: 50%;" src="{{ url_for('static', filename='team-1.jpg') }}" alt="">
-                <span class="card-text ml-2 "><h5 style= "display: inline;">{{orders.order.full_name}}</h5></span>
+                <span class="card-text ml-2 "><h5 style= "display: inline;">{{orders.order.first_name}}</h5></span>
            
             <hr style="width:95%;text-align:left;margin-left:0">
                
@@ -211,7 +211,7 @@ Navbar End -->
                 <p><h6><i class="far fa-dot-circle text-primary mr-3"></i><small>Deliver:</small> {{ orders.dropoff }} </h6>
                     
                 
-                    <label><small>Customer Message:</small></label>
+                    <label><small>Customer {{orders.dropoff_coord}} Message:</small></label>
         <textarea class="form-control">{{dst_latitude}},{{dst_longitude}}:{{latitude}},{{longitude}}</textarea>
 
             <p><h6><i class="far fa-dot-circle text-primary mr-3"></i><small>Delivery Time:</small><b> {{orders.delivery_time}} mins</h6>
@@ -226,43 +226,12 @@ Navbar End -->
                     </div>
             <br>
             <div class="d-flex justify-content-center"> 
-            <a href="#" class="btn btn-outline-primary btn-lg w-50 rounded text-left"><span class="text-left"><small>Price: </small><b> {{orders.delivery_cost}}</b></span><small class="ml-4">| Order Picked Up</small></a>
+            <a href="{{url_for("order_complete", id=orders.id)}}" class="btn btn-outline-primary btn-lg w-50 rounded text-left"><span class="text-left"><small>Price: </small><b> {{orders.delivery_cost|int|format_number}}</b></span><small class="ml-4">| Order Picked Up</small></a>
                 <a href="#" class="btn btn-primary ml-2 btn-lg w-50 rounded"><small>Call: </small>{{orders.order.phone}}</a>
             </div>
             </div>
         </div>
         </div>
-
-
-
-{% if orders.id == 12 %}
-<div class="toast-container position-static">
-    <div class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-      <div class="toast-header">
-        <img src="..." class="rounded me-2" alt="...">
-        <strong class="me-auto">Bootstrap</strong>
-        <small class="text-body-secondary">just now</small>
-        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-      </div>
-      <div class="toast-body">
-        See? Just like this.
-      </div>
-    </div>
-  
-    <div class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-      <div class="toast-header">
-        <img src="..." class="rounded me-2" alt="...">
-        <strong class="me-auto">Bootstrap</strong>
-        <small class="text-body-secondary">2 seconds ago</small>
-        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-      </div>
-      <div class="toast-body">
-        Heads up, toasts will stack automatically
-      </div>
-    </div>
-  </div>
-  {% endif %}
-
 
 
     <!-- Footer Start -->

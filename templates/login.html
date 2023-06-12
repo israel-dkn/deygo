@@ -1,22 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    {% block title%}<title>Compnay Profile</title>{% endblock %}
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="Free HTML Templates" name="keywords">
+    <meta content="Free HTML Templates" name="description">
+
+    <!-- Favicon -->
+    <link href="img/favicon.ico" rel="icon">
+
+    <!-- Google Web Fonts -->
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Libraries Stylesheet -->
+    <link href="lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
+
+    <!-- Customized Bootstrap Stylesheet -->
+    
+    
+    
 <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
 <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
-
+</head>
+   
+<body>
     {% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <ul class=flashes>
-    {% for message in messages %}
-    <div class="alert alert-warning alert-dismissible fade show" role="alert">
-        {{ message }}
-        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-    {% endfor %}
-    </ul>
-  {% endif %}
-{% endwith %} 
+    {% if messages %}
+      <ul class=flashes>
+      {% for message in messages %}
+      <div class="alert alert-warning alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+      {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %} 
 
 <main>
 
@@ -28,10 +57,11 @@
         </div>
         <br> <br>
 
+
         <div class="container" style="align-center;">
-            <button type="button" class="btn1 btn1-primary btn-block" data-toggle="modal" data-target="#exampleModal" data-whatever="@mdo">User Sign In</button>
+            <button type="button" class="btn btn-primary ml-2 btn-lg w-100" data-toggle="modal" data-target="#exampleModal" data-whatever="@mdo">User Sign In</button>
             <br> <br> <br> <br>
-            <button type="button" class="btn1 btn1-primary btn-block" data-toggle="modal" data-target="#example2Modal" data-whatever="@fat">Partner Sign In</button>
+            <button type="button" class="btn btn-primary ml-2 btn-lg w-100 mb-5" data-toggle="modal" data-target="#example2Modal" data-whatever="@fat">Partner Sign In</button>
 
             <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
                 <div class="modal-dialog" role="document">
@@ -178,3 +208,6 @@
 
     
 </main>
+</body>
+
+</html>

@@ -4,7 +4,7 @@
 
 <head>
     <meta charset="utf-8">
-    {% block title%}<title>Compnay Profile</title>{% endblock %}
+    {% block title%}<title>Partner - My Dash</title>{% endblock %}
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <meta content="Free HTML Templates" name="keywords">
     <meta content="Free HTML Templates" name="description">
@@ -32,15 +32,22 @@
 
 <body>
     <div class="sticky-top">
-        {% with messages = get_flashed_messages(with_categories=true) %} {% if
-            messages %} {% for category, message in messages %} {% if category ==
-            'error' %}
+        {% with messages = get_flashed_messages(with_categories=true) %} 
+        {% if messages %} {% for category, message in messages %} 
+        {% if category == 'error' %}
             <div class="alert alert-danger alter-dismissable fade show" role="alert">
               {{ message }}
               <button type="button" class="close" data-dismiss="alert">
                 <span aria-hidden="true">&times;</span>
               </button>
             </div>
+        {% elif category == 'warning' %}
+        <div class="alert alert-warning alter-dismissable fade show" role="alert">
+            <b>{{ message }}</b>
+            <button type="button" class="close" data-dismiss="alert">
+            <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
             {% else %}
             <div class="alert alert-success alter-dismissable fade show" role="alert">
               {{ message }}
@@ -52,6 +59,7 @@
         </div>
 
 <!--Test Script for location -->
+{% if current_user.driver_status == "available" or current_user.driver_status == "on-ride" %}
 <script>
     async function getLocation() {
         return new Promise((resolve, reject) => {
@@ -91,12 +99,11 @@
         }
     }
         
-    
  // Start tracking location immediately
  trackLocation();
     setInterval(trackLocation, 30000); // Track location every 30 seconds
 </script>
-
+{% endif %}
 
 
     <!-- Topbar Start -->
@@ -146,11 +153,17 @@
            
             <div class="collapse navbar-collapse justify-content-between px-lg-3" id="navbarCollapse">
                 <div class="navbar-nav m-auto py-0">
-                    <a href="/" class="nav-item nav-link active">My Dash</a>
-                    <a href="/" class="nav-item nav-link">My Rides</a>
+                    <a href="/company" class="nav-item nav-link {% block nava %}active{% endblock %}">My Dash</a>
+                    <a href="/company/my-rides" class="nav-item nav-link {% block navc %}{% endblock %}">My Rides</a>
                     <a href="/" class="nav-item nav-link">Feedbacks/Ratings</a> 
                     <a href="/" class="nav-item nav-link">Financials</a>
-                    
+                    {% if current_user.driver_status == "available" %}
+                    <a href="{{url_for("go_offline")}}" class="nav-item nav-link text-danger">GO OFFLINE</a>
+                    {% elif current_user.driver_status == "on-ride" %}
+                    <a href="" class="nav-item nav-link text-danger disabled ">GO OFFLINE</a>
+                    {% else %}
+                    <a href="{{url_for("go_online")}}" class="nav-item nav-link text-success">GO ONLINE</a>
+                    {% endif %}
                 </div>
                 <a href="" class="btn btn-dark py-2 px-4 d-none d-lg-block disabled">{{ ses }}</a>
             </div>
@@ -160,41 +173,141 @@
     {% endblock %}
     <!-- Navbar End -->
 
+
 {% block header %}
     <!-- Header Start -->
     <div class="jumbotron jumbotron-fluid mb-5">
         
         <div class="container text-center py-5">
-            <h1 class="text-primary mb-4">COMPANY PROFILE {{ses}}</h1>
-            <h1 class="text-white display-3 mb-3" >Hello {{ current_user.username }}!</a></h1>
+            
+            {% if current_user.driver_status == "available" %}
+            <h1 class="text-primary mb-4"><span class="badge badge-pill badge-success"> {{current_user.driver_status}}</span></h1>
+            {% elif current_user.driver_status == "offline" %}
+            <h1 class="text-primary mb-4"><span class="badge badge-pill badge-danger"> {{current_user.driver_status}}</span></h1>
+            {% elif current_user.driver_status == "on-ride" %}
+            <h1 class="text-primary mb-4"><span class="badge badge-pill badge-warning "> {{current_user.driver_status}}</span></h1>
+            {% endif %}
+            <h1 class="text-white display-3 mb-3" ><small>Hello,</small> {{ current_user.username }}!</a></h1>
             
             <div class="d-inline-flex align-items-center text-white">
                 <p class="m-0"><a class="text-white" href="">Abuja</a></p>
                 <i class="fa fa-circle px-3"></i>
             
-                <p class="m-0">Earnings: NGN {{orders_sum}}</p>
+                <p class="m-0"><small>Earnings:</small> NGN <b>{{orders_sum|int|format_number}} </b> </p>
               
                 <i class="fa fa-circle px-3"></i>
-                <p class="m-0">Completed: <b>{{orders_count}} 🚴 </p>
+                <p class="m-0"><small>Completed: </small><b>{{orders_count}} 🚴 </b></p>
             </div>
         </div>
     </div>
     <!-- Header End -->
 {% endblock %}
 
+{% block content %}
+
+
+{% if current_user.driver_status == "on-ride" and last_order.id is not none %}
+    
+    <div class="d-flex container justify-content-center mb-3">
+        <a href="{{ url_for('order_details', id=last_order.id)}}"> <h2 class="text-primary"> <span class="badge badge-pill badge-warning">Complete Current Ride</span></h2></a>
+    </div>
+    
+{% else  %}
+    <div class="d-flex container justify-content-center mb-3">
+        <a> <h2 class="text-primary"> <span class="badge badge-pill badge-secondary"><i>no pending</i></span></h2></a>
+    </div>
+{% endif %}
 
 
 
+
+
+ <!-- POP-UP NOTIFICATION 
+ <div class="modal" id="popup{{ orders.id }}" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">A NEW ORDER HAS BEEN ASSIGNED TO YOU</h5>
+          <span>Just Now</span>
+        </div>
+        <div class="modal-body">
+          <p> {{orders.placed_by_id}} offer up!</p>
+        </div>
+        <div class="modal-footer justify-content-center">
+          <button type="button" id="dismiss-btn" class="btn btn-outline-primary btn-lg">Decline</button>
+          <button type="button" class="btn btn-primary btn-lg w-75" >Accept</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+END POP-UP NOTIFICATION -->
 
 <!--End New Ride Requests-->
 
 {% for orders in orders %}
 
+{% if current_user.id == orders.available_riders|int and current_user.driver_status=="available" %}
+                {% set variable1 = timestamp %}
+                {% set variable2 = orders.time_created %}
+            
+                {% set result = variable1 - variable2 %}
+
+                {% set result2 = result/60 %}
+
+                {% set resultmin = result2|total_seconds %}
+
+{% if resultmin|int < 3 %}
+<!-- POP-UP NOTIFICATION JS -->
+<script>
+    // JavaScript code for showing the popup
+    window.addEventListener('DOMContentLoaded', function() {
+        var popup = document.getElementById('popup');
+        var dismissBtn = document.getElementById('dismiss-btn');
+    
+    dismissBtn.addEventListener('click', function() {
+      popup.style.display = 'none';
+    });
+
+        popup.style.display = 'block';
+      });
+  </script>
+<!-- END POP-UP NOTIFICATION JS -->
+
+<!-- POP-UP NOTIFICATION -->
+<div class="modal" id="popup" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">A NEW ORDER HAS BEEN ASSIGNED TO YOU!!</h5>
+          <span>
+            {% if resultmin|int < 1 %} just now
+            {% elif resultmin|int < 2 %} 2 min left
+            {% else %} expiring soon!
+        {% endif %}</span>
+        </div>
+        <div class="modal-body">
+          <h6><small>FROM:</small> {{ orders.pickup }} </h6>
+          <h6><small>TO:</small> {{ orders.dropoff }}</h6>
+          <h5><small>Cost:</small> {{orders.delivery_cost|format_number}}</h5>
+        </div>
+        <div class="modal-footer justify-content-center">
+          <button type="button" id="dismiss-btn" class="btn btn-outline-primary btn-lg">Decline</button>
+          <a href="{{ url_for('order_accepted', id=orders.id)}}" target="_blank" type="button" class="btn btn-primary btn-lg w-75" >Accept</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- END POP-UP NOTIFICATION -->
+{% endif %}
+{% endif %}
+
     {% if orders.status == "pending" %}
     <div class="container">
         <div class="card">
             <div class="card-body">
-                <span class="card-text">Requested By: <h5 style= "display: inline;">{{orders.order.full_name}}</h5></span>
+                <span class="card-text">Requested By: <h5 style= "display: inline;">{{orders.order.first_name}}</h5></span>
         
                 <p class="card-text">Time: 
                 {% set variable1 = timestamp %}
@@ -232,7 +345,7 @@
             <div class="d-flex justify-content-center">  
                 <div class="ml-4"><span class="far fa-dot-circle mr-3"></span>Time:<b> {{orders.delivery_time}} mins</b></div>
                 <div class="ml-4"><span class="far fa-dot-circle mr-3"></span>Distance:<b> {{orders.delivery_distance}} km </b> </div>
-                <div class="ml-4"><span class="far fa-dot-circle mr-3"></span>Price: <b>NGN <h4 style= "display: inline;"> {{orders.delivery_cost}} </h4></b></div>
+                <div class="ml-4"><span class="far fa-dot-circle mr-3"></span>Price: <b>NGN <h4 style= "display: inline;"> {{orders.delivery_cost|format_number}} </h4></b></div>
                 
             </div>
                 
@@ -240,7 +353,11 @@
             <br>
             <div class="d-flex justify-content-center"> 
             <a href="#" class="btn btn-outline-primary btn-lg rounded">Decline</a>
+            {% if last_order_count > 2 %}
+                <a href="" class="btn btn-primary w-100 ml-2 btn-lg rounded disabled">Cannot Accept More Requests</a>
+            {% else %}
                 <a href="{{ url_for('order_accepted', id=orders.id)}}" class="btn btn-primary w-100 ml-2 btn-lg rounded">Accept</a>
+            {% endif %}
             </div>
             </div>
         </div>
@@ -253,11 +370,10 @@
    
 
 
-{% block content %}
-    
 
     
-{% endblock %}
+
+
 
 
 
@@ -335,7 +451,7 @@
                                 </td>
     
                                 <td>
-                                    {{ order_qry.order.full_name}}
+                                    {{ order_qry.order.first_name}}
                                 </td>
                              
                         
@@ -354,7 +470,8 @@
 </div>
 
 
-
+    
+{% endblock %}
 
 
     <!-- Footer Start -->

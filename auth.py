@@ -2,7 +2,7 @@ from flask import Flask, Blueprint, render_template, request, redirect, url_for,
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, date, timedelta
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, SelectField
+from wtforms import StringField, PasswordField, SubmitField, SelectField, RadioField
 from wtforms.validators import ValidationError, DataRequired
 from os import path
 import requests
@@ -11,6 +11,9 @@ import random, string
 import json
 from flask_socketio import SocketIO, emit, join_room, leave_room, send
 from flask_migrate import Migrate
+import math
+from functools import wraps
+
 
 
 
@@ -22,6 +25,7 @@ DB_NAME = "database.db"
 site_name="DEY GO"
 app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_NAME}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+paystack_secret_key = 'sk_test_528e1a3543582b47f670ae934becaff87fb12dca'
 secret_key = "IgVnWnSwmS0LN4RtKaaCubIiFCG2Iq0FSFDqJaboBy0eXHakp0jHFQ"
 app.config["SECRET_KEY"] = "my secret key"
 tomtom_admin_key = "PUuQt6512jSNCD3gdu00VxzYAsKQ7VDo2XrJoPvGhhhNoSl0"
@@ -47,7 +51,30 @@ def load_user(user_id):
     #return useruser = PartnerSignup.query.get(int(user_id))
     return user
 
+def login_required_partner(view_func):
+    @wraps(view_func)
+    def wrapper(*args, **kwargs):
+        if session.get('type') == None:
+            flash("Login to access this page", category="error")
+            return redirect(url_for("login"))
+        if session.get('type') != 'partner':
+            flash(f"Hello {current_user.first_name}, You must be a partner to access this page!", category="error")
+            return redirect(url_for("user_dash"))
+        return view_func(*args, **kwargs)
+    return wrapper
 
+
+def login_required_user(view_func):
+    @wraps(view_func)
+    def wrapper(*args, **kwargs):
+        if session.get('type') == None:
+            flash("Login to access this page", category="error")
+            return redirect(url_for("login"))
+        if session.get('type') != 'user':
+            flash(f"Hello {current_user.username}, You do not have permission to access this URL!", category="error")
+            return redirect(url_for("partner_dashboard"))
+        return view_func(*args, **kwargs)
+    return wrapper
 
 
 #
@@ -112,17 +139,22 @@ class Orders(db.Model):
     dropoff = db.Column(db.String)
     delivery_time = db.Column(db.String) 
     delivery_distance = db.Column(db.String) 
-    delivery_cost = db.Column(db.String) 
-    pickup_coord = db.Column(db.String)
-    dropoff_coord = db.Column(db.String)
-    placed_by = db.Column(db.String) #placed_by=current_user.name
+    delivery_cost = db.Column(db.Integer) 
+    pickup_lat = db.Column(db.Float)
+    pickup_lon = db.Column(db.Float)
+    dropoff_lat = db.Column(db.Float)
+    dropoff_lon = db.Column(db.Float)
+    test_col = db.Column(db.String) 
+    delivery_mode = db.Column(db.String, default="bike") 
     placed_by_id = db.Column(db.String) #placed_by=current_user.id
     time_created = db.Column(db.DateTime, default=datetime.now)
     track_id = db.Column(db.String, default=ran_id)
-    status = db.Column(db.String(20), default='pending')
+    status = db.Column(db.String(20), default='pending') 
+    available_riders = db.Column(db.Integer)
     driver_id = db.Column(db.Integer, db.ForeignKey('partnersignup.id'))
     user_id = db.Column(db.Integer, db.ForeignKey('usersignup.id'))
     accepted_by = db.Column(db.String)
+    date_edited = db.Column(db.DateTime)
     
     def accept_order(self, partner_id):
         self.status = 'accepted'
@@ -139,12 +171,18 @@ class PartnerSignup(db.Model, UserMixin):
     __tablename__ = 'partnersignup'
     
     id = db.Column(db.Integer, primary_key=True)
+    date_registered = db.Column(db.DateTime, default=datetime.utcnow)
     username = db.Column(db.String)
     email = db.Column(db.String, unique=True, nullable=False)
     password = db.Column(db.String)
     con_password = db.Column(db.String)
-    driver_lat = db.Column(db.String)
-    driver_lon = db.Column(db.String)
+    good_review = db.Column(db.Integer, default=0)
+    bad_review = db.Column(db.Integer, default=0)
+    driver_lat = db.Column(db.Float)
+    driver_lon = db.Column(db.Float)
+    driver_status = db.Column(db.String(20), default='available') # on-ride, offline
+    delivery_status = db.Column(db.String(20), default='null')
+    date_edited = db.Column(db.DateTime)
     driver = db.relationship('Orders', backref='partner')
     
     
@@ -154,12 +192,18 @@ class UserSignup(db.Model, UserMixin):
     __tablename__ = 'usersignup'
     
     id = db.Column(db.Integer, primary_key=True)
-    full_name = db.Column(db.String)
+    date_registered = db.Column(db.DateTime, default=datetime.utcnow)
+    user_account_balance = db.Column(db.Integer)
+    first_name = db.Column(db.String(20), nullable=False)
+    last_name = db.Column(db.String(20))
     address = db.Column(db.String)
     phone = db.Column(db.Integer, unique=True, nullable=False)
     email = db.Column(db.String, unique=True, nullable=False)
     password = db.Column(db.String)
     con_password = db.Column(db.String)
+    user_lat = db.Column(db.Float)
+    user_lat = db.Column(db.Float)
+    date_edited = db.Column(db.DateTime)
     user = db.relationship('Orders', backref='order')
     
    
@@ -247,7 +291,8 @@ class PartnerSignupForm(FlaskForm):
     
 
 class UserSignupForm(FlaskForm):
-    name = StringField('Your Name', validators=[DataRequired()])
+    f_name = StringField('Your Name', validators=[DataRequired()])
+    l_name = StringField('Your Name', validators=[DataRequired()])
     address = StringField('Your Address e.g 251 Hebert Macaulay Way', validators=[DataRequired()])
     phone = StringField('Your Phone Number', validators=[DataRequired()])
     email = StringField('Your Email', validators=[DataRequired()])
@@ -281,12 +326,18 @@ class RequestOrderForm(FlaskForm):
     pickup = StringField("Pickup Address", validators=[DataRequired()])
     dropoff = StringField("Delivery Address", validators=[DataRequired()])
     message = StringField("Addidtional message")
+    delivery_mode = RadioField("car", choices=[('value','description')])
     submit = SubmitField("Request Dispatch")
 
 
 class TrackTestForm(FlaskForm):
     title = StringField("Title")
     submit = SubmitField("Register")
+    
+
+class CreditForm(FlaskForm):
+    amount = StringField("Amount")
+    submit = SubmitField("Credit")
 
 
 
@@ -302,11 +353,72 @@ class TrackTestForm(FlaskForm):
  
 # <---- All test routes will go here ---->
 
+@app.route("/rider/go-offline")
+@login_required_partner
+def go_offline():
+    partner_id = current_user.id
+    partner_stat = PartnerSignup.query.get(partner_id)
+    last_order_count = Orders.query.filter_by(driver_id=partner_id, status='accepted').order_by(Orders.id.desc()).count()
+    
+    
+    if last_order_count > 1:
+        flash("Unable to go OFFLINE! Complete pending rides to go Offline...", category="error")
+        return redirect(url_for("dashboard_rides"))
+    else:
+        partner_stat.driver_status = 'offline'
+        
+        try:
+            db.session.commit()
+        except:
+            flash("oops, There was an error updating your status", category='error')
+        
+        return redirect(url_for("partner_dashboard"))
 
 
-@app.route("/order/details/<int:id>")
-@login_required
+@app.route("/rider/go-online")
+@login_required_partner
+def go_online():
+    
+    partner_id = current_user.id
+    partner_stat = PartnerSignup.query.get(partner_id)
+    
+    partner_stat.driver_status = 'available'
+    
+    try:
+        db.session.commit()
+    except:
+        flash("oops, There was an error updating your status", category='error')
+    
+    return redirect(url_for("partner_dashboard"))
+
+
+
+@app.route("/rider/order/complete/<int:id>")
+@login_required_partner
+def order_complete(id):
+    orders = Orders.query.get(id)
+    partner_id = current_user.id
+    partner_stat = PartnerSignup.query.get(partner_id)
+    
+    total = format_number_with_commas(orders.delivery_cost)
+    
+    
+    partner_stat.driver_status = 'available'
+    orders.status = "completed"
+    
+    try:
+        db.session.commit()
+    except:
+        flash("oops, There was an error updating your status", category='error')
+    
+    flash("Order Completed! N{} has been added to your balance".format(total), category='success')
+    return redirect(url_for("partner_dashboard"))
+
+
+@app.route("/rider/order/details/<int:id>")
+@login_required_partner
 def order_details(id):
+    
     orders = Orders.query.get(id)
     access = orders.driver_id
     
@@ -318,11 +430,12 @@ def order_details(id):
         
         new_coord = Orders.query.filter(Orders.order.has(id=partner_id))
         
+        # get driver location and get the pickup location to get the ETA
         latitude = (float(partner_loc.driver_lat))
         longitude = (float(partner_loc.driver_lon))
         
-        dst_latitude = (float(orders.pickup_coord))
-        dst_longitude = (float(orders.dropoff_coord))
+        dst_latitude = (float(orders.pickup_lat))
+        dst_longitude = (float(orders.pickup_lon))
         
         
         url = "https://api.tomtom.com/routing/matrix/2"
@@ -375,24 +488,45 @@ def order_details(id):
                             latitude=latitude,
                             dst_longitude=dst_longitude,
                             dst_latitude=dst_latitude,
-                            longitude=longitude)
+                            longitude=longitude,
+                            partner_loc=partner_loc)
     else:
         flash("Error...Not Allowed", category='error')
         return redirect(url_for("partner_dashboard"))
 
 
+
+# Custom filter(var) to pass to jinja
 def total_seconds_filter(td):
     return td.total_seconds()
 
+
+def format_number_with_commas(number):
+    # Convert the number to a string
+    number_str = str(number)
+    
+    # Reverse the string to make it easier to add commas
+    reversed_str = number_str[::-1]
+    
+    # Split the reversed string into chunks of three characters
+    chunks = [reversed_str[i:i+3] for i in range(0, len(reversed_str), 3)]
+    
+    # Reverse the chunks and join them with commas
+    formatted_str = ','.join(chunks)[::-1]
+    
+    return formatted_str
+
+
+
 # Register the custom filter
 app.jinja_env.filters['total_seconds'] = total_seconds_filter
-
+app.jinja_env.filters['format_number'] = format_number_with_commas
 
 def calculate_time_difference(minutes_ago):
     current_time = datetime.now()
     time_difference = current_time - minutes_ago
     minutes = int(time_difference.total_seconds() / 60)
-    return minutes
+#     return minutes
 
 
 def display_time_ago(minutes):
@@ -540,7 +674,8 @@ def user_signup():
             # If form data raises error, make other form input empty 
             form.phone.data = ''
         else:
-            form_data = UserSignup(full_name=form.name.data,
+            form_data = UserSignup(first_name=form.f_name.data,
+                                   last_name=form.l_name.data,
                                 email=form.email.data,
                                 address=form.address.data,
                                 phone=form.phone.data,
@@ -572,7 +707,7 @@ def login():
             flash("Logged in successfully!")
             return redirect(url_for('user_dash'))
         else:
-            flash("Email or password is incorrect! Try again...")
+            flash("User email or password is incorrect! Try again...")
             form.email.data = '' 
             form.password.data = ''
             
@@ -587,7 +722,7 @@ def login():
             flash("Logged in successfully!")
             return redirect(url_for('partner_dashboard', id=current_user.id))
         else:
-            flash("Email or password is incorrect! Try again...")
+            flash("Partner email or password is incorrect! Try again...")
             form2.username.data = '' 
             form2.email.data = '' 
             form2.password.data = ''
@@ -597,25 +732,9 @@ def login():
 
 
 
-def format_number_with_commas(number):
-    # Convert the number to a string
-    number_str = str(number)
-    
-    # Reverse the string to make it easier to add commas
-    reversed_str = number_str[::-1]
-    
-    # Split the reversed string into chunks of three characters
-    chunks = [reversed_str[i:i+3] for i in range(0, len(reversed_str), 3)]
-    
-    # Reverse the chunks and join them with commas
-    formatted_str = ','.join(chunks)[::-1]
-    
-    return formatted_str
-
-
-
 
 @app.route('/save_location', methods=['POST', 'GET'])
+@login_required
 def save_location():
     data = request.get_json()
     partner_id = current_user.id
@@ -628,8 +747,9 @@ def save_location():
     new_coord.driver_lon = longitude
     try:
         db.session.commit()
+        print(f"{new_coord.username} posted their location!")
     except:
-        flash("oops, There was an error accepting this order...", category='error')
+        flash("oops, There was an error tracking your location", category='error')
     
     return 'Location saved successfully'
 
@@ -644,58 +764,84 @@ def view_driver(id):
 
 
 
+@app.route("/company/my-rides", methods=["POST", "GET"], defaults={"page" : 1})
+@app.route("/company/my-rides/<int:page>", methods=["POST", "GET"])
+@login_required_partner
+def dashboard_rides(page):
+    partner_id = current_user.id
+    ses = session['type']
+    last_order = Orders.query.filter_by(driver_id=partner_id, status='accepted').order_by(Orders.id.desc()).first()
+    order_qry = Orders.query.filter(Orders.partner.has(id=partner_id)).order_by(Orders.id.desc()).paginate(page=page, per_page=5)
+    orders_sum = db.session.query(db.func.sum(Orders.delivery_cost)).filter_by(driver_id=current_user.id, status='completed').scalar()
+    orders_count = Orders.query.filter_by(driver_id=partner_id, status='completed').count()
+    orders_count_all = Orders.query.filter_by(driver_id=partner_id).count()
+    timestamp = datetime.now()
+              
+    return render_template("driver-my-rides.html",
+                           last_order=last_order,
+                           order_qry=order_qry,
+                           orders_sum=orders_sum,
+                           orders_count=orders_count,
+                           timestamp=timestamp,
+                           ses=ses,
+                           orders_count_all=orders_count_all)
+    
+    
+
 @app.route("/company", methods=["POST", "GET"])
 # @app.route("/company/<int:id>", methods=["POST", "GET"])
-@login_required
+@login_required_partner
 def partner_dashboard():
     # redirect to home page if the user current session is "user"
     partner_id = current_user.id
-    if session['type'] == "user" or None:
-        flash("You Must be a partner to access this page", category="error")
-        return redirect(url_for("home"))
-    elif session['type'] == "partner":
         
        
-        # def a func to say, if rider current lat,lon == nearest_rider_index
-        # automatically assign order to the particular rider
-        ses = session['type']
-        orders = Orders.query.filter_by(status='pending').order_by(Orders.id.desc())
-        orders_count = Orders.query.filter_by(driver_id=partner_id, status='accepted').count()
-        orders_sum = db.session.query(db.func.sum(Orders.delivery_cost)).filter_by(driver_id=current_user.id, status='accepted').scalar()
-        order_qry = Orders.query.filter(Orders.partner.has(id=partner_id)).order_by(Orders.id.desc()).all()
-        
-        timestamp = datetime.now()
-        
-        # orders_sum = format_number_with_commas(orders_sum_req)
-   
-        # lat_lon = {}
-        # records = PartnerSignup.query.all()
-        # for lat_lons in records:
-        #     lat_lon[lat_lons.id] = [ float(lat_lons.driver_lat), float(lat_lons.driver_lon)]
-                
-        # target_point = [9.052185, 7.485223]
-        # nearest_point = None
-        # min_distance = float('inf')
+    # def a func to say, if rider current lat,lon == nearest_rider_index
+    # automatically assign order to the particular rider
+    ses = session['type']
+    orders = Orders.query.filter_by(status='pending').order_by(Orders.id.desc())
+    orders_count = Orders.query.filter_by(driver_id=partner_id, status='completed').count()
+    orders_sum = db.session.query(db.func.sum(Orders.delivery_cost)).filter_by(driver_id=current_user.id, status='completed').scalar()
+    order_qry = Orders.query.filter(Orders.partner.has(id=partner_id)).order_by(Orders.id.desc()).all()
+    # last_order =  Orders.query.filter_by(driver_id=partner_id, status='pending').all()
+    last_order = Orders.query.filter_by(driver_id=partner_id, status='accepted').order_by(Orders.id.desc()).first()
+    
+    last_order_count = Orders.query.filter_by(driver_id=partner_id, status='accepted').order_by(Orders.id.desc()).count()
+    
+    
+    timestamp = datetime.now()
+    
+    # orders_sum = format_number_with_commas(orders_sum_req)
 
-        # for point_name, coords in lat_lon.items():
-        #     lat = coords[0]
-        #     lon = coords[1]
-        #     distance = ((lat - target_point[0]) ** 2 + (lon - target_point[1]) ** 2) ** 0.5
-        #     if distance < min_distance:
-        #         min_distance = distance
-        #         nearest_point = point_name
+    # lat_lon = {}
+    # records = PartnerSignup.query.all()
+    # for lat_lons in records:
+    #     lat_lon[lat_lons.id] = [ float(lat_lons.driver_lat), float(lat_lons.driver_lon)]
+            
+    # target_point = [9.052185, 7.485223]
+    # nearest_point = None
+    # min_distance = float('inf')
 
-        # nearest_coordinates = lat_lon[nearest_point]
-        
-        return render_template('company.html', 
-                            orders=orders,
-                            orders_count=orders_count,
-                            ses=ses,
-                            orders_sum=orders_sum, 
-                            timestamp=timestamp,
-                            order_qry=order_qry) 
-        
-    return render_template('company.html')
+    # for point_name, coords in lat_lon.items():
+    #     lat = coords[0]
+    #     lon = coords[1]
+    #     distance = ((lat - target_point[0]) ** 2 + (lon - target_point[1]) ** 2) ** 0.5
+    #     if distance < min_distance:
+    #         min_distance = distance
+    #         nearest_point = point_name
+
+    # nearest_coordinates = lat_lon[nearest_point]
+    
+    return render_template('company.html', 
+                        orders=orders,
+                        orders_count=orders_count,
+                        ses=ses,
+                        orders_sum=orders_sum, 
+                        timestamp=timestamp,
+                        order_qry=order_qry,
+                        last_order=last_order,
+                        last_order_count=last_order_count) 
+    
     
 
 
@@ -725,17 +871,6 @@ def track_create():
         db.session.commit()
         flash("Successful")
     return render_template("track-create.html", form=form)
-
-
-
-
-
-
-# @app.route("/rider-dash")
-# def rider_dash():
-#     orders = Orders.query.all()
-#     # rider_accepted = Orders.query.filter(Orders.rider.has(id=1, status=accepted)).all()
-#     return render_template("r-dash.html", orders=orders)
 
 
 
@@ -841,49 +976,31 @@ def blog():
 #
 
 
-   
-
 # Done! Completed
-@app.route("/order/accept/<int:id>")
-@login_required
+@app.route("/rider/order/accept/<int:id>")
+@login_required_partner
 def order_accepted(id):
     accepted_by = current_user.id
+    driver_stat = PartnerSignup.query.get(accepted_by)
     order_accept = Orders.query.get(id)
     access = order_accept.driver_id
-    
-    lat_lon = {}
-    riders_qry = PartnerSignup.query.all()
-    for lat_lons in riders_qry:
-        lat_lon[lat_lons.id] = [ float(lat_lons.driver_lat), float(lat_lons.driver_lon)]
-                
-    pickup_coord = [float(order_accept.pickup_coord), float(order_accept.dropoff_coord)]
-    nearest_rider = None
-    min_distance = float('inf')
-
-    for driver_id, coords in lat_lon.items():
-        lat = coords[0]
-        lon = coords[1]
-        distance = ((lat - pickup_coord[0]) ** 2 + (lon - pickup_coord[1]) ** 2) ** 0.5
-        if distance < min_distance:
-            min_distance = distance
-            nearest_rider = driver_id
-            
-    nearest_rider_list = [nearest_rider]
-
-    nearest_coordinates = lat_lon[nearest_rider]
-    
-    print(nearest_rider)
-    print(nearest_rider_list)
-    
-    if order_accept.status == "accepted" and current_user.id != access:
+    last_order_count = Orders.query.filter_by(driver_id=accepted_by, status='accepted').order_by(Orders.id.desc()).count()
+        
+    if driver_stat.driver_status == "offline":
+        flash("Go online to accept new rides!", category="warning")
+        return redirect(url_for("partner_dashboard"))
+    elif order_accept.status == "accepted" and current_user.id != access:
         flash("Oopss! Order Accepted by another rider...", category="error")
         return redirect(url_for("partner_dashboard"))
-            
+    elif last_order_count > 2:
+        flash("Oopss! Complete current rides to accept new ones!", category="error")
+        return redirect(url_for("partner_dashboard"))
         # to ensure rides are not accepted by multiple drivers
     elif order_accept.status == "pending":
         order_accept.status = 'accepted'
         order_accept.driver_id = accepted_by
         order_accept.accepted_by = accepted_by
+        driver_stat.driver_status = 'on-ride'
         try:
             db.session.commit()
             flash("Order Accepted!", category='success')
@@ -898,19 +1015,11 @@ def order_accepted(id):
                                     id=id))
    
     
-    if accepted_by in nearest_rider_list:
-        pass
-    else:
-        flash("Oopss! You are too far away to accept this order", category="error")
-        #return redirect(url_for("partner_dashboard"))
-    
     return redirect(url_for("order_details"))
     
    
-
-
 @app.route("/cancel/request/<int:id>")
-@login_required
+@login_required_user
 def cancel_request(id):
     user_id = current_user.id
     cancel_request = Orders.query.get(id)
@@ -956,36 +1065,82 @@ def home():
                             blog_posts=blog_posts, 
                             form=form)
     
-    
-    
 
-            
+
+@app.route("/user-dash/credit-account/<int:id>/<int:amount>", methods=["POST", "GET"])
+@login_required_user
+def credit_account(id, amount):
+    user_id = UserSignup.query.get(id)
+    user_mail = str(user_id.email)
+    
+    if user_id:
+        url_paystack = "https://api.paystack.co/transaction/initialize"
+
+        payload_paystack = {
+            "email": f"{user_mail}",
+            "amount": f"{amount}00" 
+        }
+        headers_paystack = {
+            "Authorization": " Bearer sk_test_528e1a3543582b47f670ae934becaff87fb12dca".strip(),
+            "Content-Type": "application/json"
+        }
+
+        response_paystack = requests.request("POST", url_paystack, json=payload_paystack, headers=headers_paystack)
+        print(response_paystack.text)
+        response_paystack_json = response_paystack.json()
+        
+        test_paystack_api_code =  response_paystack_json["data"]["access_code"]
+        test_paystack_api_ref =  response_paystack_json["data"]["reference"]
+        
+        return redirect(url_for("pay_credit_account",
+                        id=id,
+                        ref=test_paystack_api_ref))
+
+
+@app.route("/user-dash/credit-account/", methods=["POST", "GET"])
+@login_required_user
+def pay_credit_account():
+    if request.method == "POST":
+        data = request.get_json()
+        ref = data["data"]
+        print(ref)
+    return "OK"
+
+
+
 
 @app.route("/user-dash", methods=["POST", "GET"])
-@login_required
+@login_required_user
 def user_dash():
     condition = True
-    if session['type'] != 'user':
-        flash("You currently do not have permission to access this page!", category='error')
-        return redirect(url_for('home'))
     
     # query db to get particular user ride requests
     user_id = current_user.id
     order_qry = Orders.query.filter(Orders.order.has(id=user_id)).order_by(Orders.id.desc()).all()
-
+   
     #values in naira
     basecharge = 300
     cost_per_min = 30
     cost_per_km = 70 
-
+    
+    #values in naira
+    van_basecharge = 600
+    
+    #values in naira
+    car_basecharge = 400
+    
     timestamp = datetime.now()
 
     form = RequestOrderForm(request.form)
+    credit_form = CreditForm(request.form)
     
-    if request.method == "POST" and form.validate:
+    form.validate
+    if request.method == "POST" and form.validate_on_submit():
         
         address = form.pickup.data
         address2 = form.dropoff.data
+        
+        delivery_mode = request.form.get("engine")
 
         #get location and convert input to lon,lat
         location = requests.request("GET", f"https://api.tomtom.com/search/2/search/{address}%20abuja.json?key=JoBjMY24siY0bENUY5g52SLXouAaf4FX")
@@ -1041,38 +1196,88 @@ def user_dash():
         testdistance = (round(testdistance_api /1000))
         testtime = (round(testtime_api /60))
         
-        #calculate the cost formular 
-        testcost1 = int(testdistance *cost_per_km) + int(testtime *cost_per_min) + int(basecharge)
-        testcost = format_number_with_commas(testcost1)
+        #calculate the cost formula
+        if delivery_mode == "bike":
+            testcost = int(testdistance *cost_per_km) + int(testtime *cost_per_min) + int(basecharge)
+        elif delivery_mode == "car":
+            testcost = int(testdistance *cost_per_km) + int(testtime *cost_per_min) + int(car_basecharge)
+        elif delivery_mode == "van":
+            testcost = int(testdistance *cost_per_km) + int(testtime *cost_per_min) + int(van_basecharge)
+        else:
+            flash("selecect an option please", category="error")
+        
         
         timestamp = datetime.now()
-        minutes_ago = calculate_time_difference(timestamp)
-        time_ago = display_time_ago(minutes_ago)
         
+        
+        lat_lon = {}
+        riders_qry = PartnerSignup.query.filter_by(driver_status="available").all()
+        for lat_lons in riders_qry:
+            lat_lon[lat_lons.id] = [ float(lat_lons.driver_lat), float(lat_lons.driver_lon)]
+                    
+        pickup_coord = [float(lat), float(lon)]
+        # nearest_rider = None
+        # min_distance = float('inf')
+        distances = {}
+        for driver_id, coords in lat_lon.items():
+            dri_lat = coords[0]
+            dri_lon = coords[1]
+            distance =  math.sqrt((pickup_coord[0] - dri_lat) ** 2 + (pickup_coord[1] - dri_lon) ** 2) 
+            distances[driver_id] = distance
+            
+            sorted_riders = sorted(lat_lon.items(), key=lambda x: x[1])
+            
+            # Select the three nearest points
+            nearest_riders = sorted_riders[:5]
+            
+            
+            for riders, distance in nearest_riders:
+                
+                print(riders)
+                
+        
+        print(nearest_riders)
+    
+        print(sorted_riders)
         try:
             # Add new order to db
-            order = Orders(placed_by=user_id,
+            order = Orders(placed_by_id=user_id,
                         pickup=address,
                         dropoff=address2,
                         user_id=user_id,
                         delivery_time=testtime,
                         delivery_distance=testdistance,
                         delivery_cost=testcost,
-                        pickup_coord=lat,
-                        dropoff_coord=lon,
-                        placed_by_id=time_ago)
+                        pickup_lat=lat,
+                        pickup_lon=lon,
+                        dropoff_lat=lat2,
+                        dropoff_lon=lon2,
+                        available_riders=riders,
+                        delivery_mode=delivery_mode)
             db.session.add(order)
             db.session.commit()
             flash("Order Request Created Successfully!", category='success')
         except:
-            flash("Oops, there was an error somewhere...", category='error')
-            
+            flash("Oops, there was an error placing that request...", category='error')
+    
+    if request.method == "POST" and credit_form.validate():
+        
+        return redirect(url_for("credit_account",
+                                id=current_user.id,
+                                amount=credit_form.amount.data))
 
+        
+    if request.method == "POST":
+        data = request.get_json()
+        ref = data["data"]
+        print(ref)
+   
     return render_template("user-dash.html",
                            order_qry=order_qry,
                            form=form,
                            timestamp=timestamp,
-                           condition=condition)
+                           condition=condition,
+                           credit_form=credit_form)
 
 
 # @app.route('/order/<int:order_id>/accept')
@@ -1121,6 +1326,11 @@ def test():
 @app.errorhandler(404)
 def not_found_error(error):
     return render_template('404.html'), 404
+
+
+@app.errorhandler(500)
+def svr_error(error):
+    return render_template('500.html'), 500
 
 
 
