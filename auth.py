@@ -1055,12 +1055,6 @@ def home():
     #ses = session['type']
     
     
-    # redirect to home page if the user current session is "partner"
-    # if session['type'] == "partner":
-    #     flash("You Must login as a User to access this page", category="error")
-    #     return redirect(url_for("login"))
-    
-    
     return render_template("index.html", 
                             blog_posts=blog_posts, 
                             form=form)
