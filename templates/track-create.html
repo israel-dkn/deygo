@@ -1,0 +1,54 @@
+<link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+<main>
+   
+        <div class="container">
+            <br>
+            <br>
+                <div class="text-center pb-2">
+                    <h6 class="text-primary text-uppercase font-weight-bold">Create</h6>
+                    <h1 class="mb-4">Login In To Your Account</h1>
+                </div>
+
+            
+                        
+                        
+                <div class="row">
+                    <div class="col-12 mb-4">
+                        <div class="card card-body border-0 shadow mb-4">
+                            <h2 class="h5 mb-4">General information</h2>
+                            <form method="POST" action="" class="mt-4">
+                                
+                                {{ form.hidden_tag() }}
+
+                                <div class="form-group mb-4">
+                                    <label >Create</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text" id="basic-addon1">
+                                            <span class="fas fa-user-circle"></span>
+                                        </span>
+                                        {{ form.title(placeholder="Title", class="form-control") }}
+                                    </div>  
+                                </div>
+
+                                
+                                    <br>
+                                <div class="d-grid">
+                                    {{ form.submit(placeholder="SIGN UP", class="btn1 btn1-primary") }}
+                                </div>
+                            </form>
+                            <br />
+                            <div class="d-flex justify-content-center align-items-center mt-4">
+                                <span class="fw-normal">
+                                    Don't have an account? 
+                                    <a href="{{ url_for("user_signup")}}" class="fw-bold">Create One Here!</a>
+                                </span>
+                            </div>
+                        
+                       
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+</main>

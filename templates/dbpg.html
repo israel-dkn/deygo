@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+
+
+
+{% block header %}
+<!-- Header Start -->
+<div class="jumbotron jumbotron-fluid mb-5">
+    <div class="container text-center py-5">
+        <h1 class="text-primary mb-4">DEY GO! ADMIN</h1>
+        <h1 class="text-white display-3"> Partners Database</h1>
+        <div class="d-inline-flex align-items-center text-white">
+            <p class="m-0"><a class="text-white" href="">Search For: {{ tag }}</a></p>
+            
+        </div>
+    </div>
+</div>
+<!-- Header End -->
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    
+ <div class="row">
+    <div class="col-8">
+           <h1 class="text-primary">DEY GO! Partners Database </h1> 
+    </div>
+    <div class="col-4">
+        <form action="" method="post" autocomplete="off"> 
+            <div class="row">
+                <div class="col-6">
+                    <input type="text" class="form-control" name="tag" id="tag"  placeholder="Enter keyword"/> 
+                </div>
+                <div class="col-6" align="left">
+                    <input type="submit" value="Search" class="form-control btn btn-primary " name=""> 
+                </div>
+        </form> 
+   </div>
+  </div>
+ </div> 
+<div class="row">
+<div class="col-12">
+  <table id="example" class="table table-striped table-bordered" style="width:100%">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Partner</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Address</th>
+                
+            </tr>
+        </thead>
+        <tbody>
+  {% for employees in employees.items %}
+  <tr>
+                <td name="">{{ employees.id }}</td>
+                <td>{{ employees.partner_name}}</td>
+                <td>{{ employees.partner_email}}</td>
+                <td>{{ employees.partner_phone}}</td>
+                <td>{{ employees.partner_addr}}</td>
+              
+        </tr>
+        {% endfor %}  
+        </tbody>
+        
+  </table>
+  <nav aria-label="Page navigation example">
+    <ul class="pagination">
+        {% if employees.has_prev %}
+          <li class="page-item"> <a class="page-link" href="{{ url_for('db_pg', page1=employees.prev_num) }}">Previous</a></li>
+        {% else %}
+          <li class="page-item"><a class="page-link btn disabled" href="#">Previous</a></li>
+        {% endif %}
+
+{% for page1 in employees.iter_pages(left_edge=3, right_edge=3) %}
+{% if page1 %}
+
+{% if page1==employees.page1 %}
+<li class="page-item active"><a class="page-link" href="{{ url_for('db_pg', page1=page1) }}">{{ page1 }}</a></li>
+{% else %}
+<li class="page-item"><a class="page-link" href="{{ url_for('db_pg', page1=page1) }}">{{ page1 }}</a></li>
+{% endif %}
+
+{% else %}
+<li class="page-item disabled" id="example_ellipsis"><a href="#" class="page-link">…</a></li> 
+{% endif %}
+{% endfor %}
+
+        {% if employees.has_next %}
+          <li class="page-item"> <a class="page-link" href="{{ url_for('db_pg', page1=employees.next_num) }}">Next</a></li>
+        {% else %}
+          <li class="page-item"><a class="page-link btn disabled" href="#">Next</a></li>
+        {% endif %}
+
+    </ul>
+</nav>
+   
+ </div>
+ </div>
+ 
+</div> 
+
+
+<style>
+table{
+    width:100%;
+}
+#example_filter{
+    float:right;
+}
+#example_paginate{
+    float:right;
+}
+label {
+    display: inline-flex;
+    margin-bottom: .5rem;
+    margin-top: .5rem;
+     
+}
+.page-item.disabled .page-link {
+    color: #6c757d;
+    pointer-events: none;
+    cursor: auto;
+    background-color: #fff;
+    border-color: #dee2e6;
+}
+</style>
+
+
+
+{% endblock %}
+   

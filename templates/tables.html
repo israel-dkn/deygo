@@ -1,0 +1,727 @@
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="title" content="Volt - Free Bootstrap 5 Dashboard">
+    <meta name="author" content="Themesberg">
+    <meta name="description" content="Volt Pro is a Premium Bootstrap 5 Admin Dashboard featuring over 800 components, 10+ plugins and 20 example pages using Vanilla JS.">
+    <meta name="keywords" content="bootstrap 5, bootstrap, bootstrap 5 admin dashboard, bootstrap 5 dashboard, bootstrap 5 charts, bootstrap 5 calendar, bootstrap 5 datepicker, bootstrap 5 tables, bootstrap 5 datatable, vanilla js datatable, themesberg, themesberg dashboard, themesberg admin dashboard" />
+    <link rel="canonical" href="https://appseed.us/product/volt-dashboard/flask/">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://appseed.us/product/volt-dashboard/flask/">
+    <meta property="og:title" content="Volt - Free Bootstrap 5 Dashboard">
+    <meta property="og:description" content="Volt Pro is a Premium Bootstrap 5 Admin Dashboard featuring over 800 components, 10+ plugins and 20 example pages using Vanilla JS.">
+    <meta property="og:image" content="https://themesberg.s3.us-east-2.amazonaws.com/public/products/volt-pro-bootstrap-5-dashboard/volt-pro-preview.jpg">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://appseed.us/product/volt-dashboard/flask/">
+    <meta property="twitter:title" content="Volt - Free Bootstrap 5 Dashboard">
+    <meta property="twitter:description" content="Volt Pro is a Premium Bootstrap 5 Admin Dashboard featuring over 800 components, 10+ plugins and 20 example pages using Vanilla JS.">
+    <meta property="twitter:image" content="https://themesberg.s3.us-east-2.amazonaws.com/public/products/volt-pro-bootstrap-5-dashboard/volt-pro-preview.jpg">
+    
+    <!-- Favicon -->
+    <link rel="apple-touch-icon" sizes="120x120" href="{{ config.ASSETS_ROOT }}/img/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ config.ASSETS_ROOT }}/img/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ config.ASSETS_ROOT }}/img/favicon/favicon-16x16.png">
+    <link rel="manifest" href="{{ config.ASSETS_ROOT }}/img/favicon/site.webmanifest">
+    <link rel="mask-icon" href="{{ config.ASSETS_ROOT }}/img/favicon/safari-pinned-tab.svg" color="#ffffff">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="theme-color" content="#ffffff">
+    <link href="img/favicon.ico" rel="icon">
+
+
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+
+    <link type="text/css" href="{{ config.ASSETS_ROOT }}/vendor/sweetalert2/dist/sweetalert2.min.css" rel="stylesheet">
+    
+    <link type="text/css" href="{{ config.ASSETS_ROOT }}/vendor/notyf/notyf.min.css" rel="stylesheet">
+    <link type="text/css" href="{{ url_for('static', filename="volt.css") }}" rel="stylesheet">
+    
+    <!-- Specific Page JS goes HERE  -->    
+    {% block stylesheets %}{% endblock stylesheets %}
+    
+    </head>
+<div class="container">
+<div class="card border-0 shadow mb-4">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-centered table-nowrap mb-0 rounded">
+                <thead class="thead-light">
+                    <tr>
+                        <th class="border-0 rounded-start">#</th>
+                        <th class="border-0">Traffic Source</th>
+                        <th class="border-0">Source Type</th>
+                        <th class="border-0">Category</th>
+                        <th class="border-0">Global Rank</th>
+                        <th class="border-0">Traffic Share</th>
+                        <th class="border-0 rounded-end">Change</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Item -->
+                    {% for partners in partners.items %}
+                    <tr>
+                        
+                        <td><a href="#" class="text-primary fw-bold">{{ partners.id }}</a> </td>
+                        <td class="fw-bold d-flex align-items-center">
+                            <svg class="icon icon-xxs text-gray-500 me-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clip-rule="evenodd"></path></svg>
+                            {{ partners.company_name}}
+                        </td>
+                        <td>
+                            {{ partners.email}}
+                        </td>
+                        <td>
+                            <span class="small fw-bold" href="#"> {{ partners.partner_phone }} </span>
+                        </td>
+                        <td>
+                            {{ partners.city}}
+                        </td>
+                        <td>
+                            <div class="row d-flex align-items-center">
+                                <div class="col-12 col-xl-2 px-0">
+                                    
+                                    <div class="small fw-bold"> {{ partners.id }}</div>
+                                </div>
+                                <div class="col-12 col-xl-10 px-0 px-xl-1">
+                                    <div class="progress progress-lg mb-0">
+                                        <div class="progress-bar bg-dark" role="progressbar" aria-valuenow="51" aria-valuemin="0" aria-valuemax="100" style="width: {{ partners.id}}%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!--- #create a column in the database to save the partners total rides
+                        # this should dispay the total rides
+                        # can also be used to dispaly revenue stats
+                        for now it doesn't do anything
+                        -->
+                        {% if partners.id <= 11 %}
+                        <td class="text-success">
+                            <div class="d-flex align-items-center">
+                                <svg class="icon icon-xs me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"></path></svg>                                   
+                                <span class="fw-bold">2.45%</span>
+                            </div>
+                        </td>
+                        {% else %}
+                        <td class="text-danger">
+                            <div class="d-flex align-items-center">
+                                <svg class="icon icon-xs me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"></path></svg>                                   
+                                <span class="fw-bold">{{partners.id}}% </span>
+                            </div>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    <!-- End of Item -->
+                    {% endfor %}
+                    <!-- Item -->
+                    <tr>
+                        <td><a href="#" class="text-primary fw-bold">2</a> </td>
+                        <td class="fw-bold d-flex align-items-center">
+                            <svg class="icon icon-xxs text-gray-500 me-2" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google"  role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path></svg>
+                            Google Search
+                        </td>
+                        <td>
+                            Search / Organic
+                        </td>
+                        <td>
+                            -
+                        </td>
+                        <td>
+                            --
+                        </td>
+                        <td>
+                            <div class="row d-flex align-items-center">
+                                <div class="col-12 col-xl-2 px-0">
+                                    <div class="small fw-bold">18%</div>
+                                </div>
+                                <div class="col-12 col-xl-10 px-0 px-xl-1">
+                                    <div class="progress progress-lg mb-0">
+                                        <div class="progress-bar bg-dark" role="progressbar" aria-valuenow="18" aria-valuemin="0" aria-valuemax="100" style="width: 18%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        
+                        <td class="text-success">
+                            <div class="d-flex align-items-center">
+                                <svg class="icon icon-xs me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"></path></svg>                                   
+                               
+                                <span class="fw-bold">17.78%</span>
+                            </div>                          
+                        </td>
+                    </tr>
+                    <!-- End of Item -->
+
+                    <!-- Item -->
+                    <tr>
+                        <td><a href="#" class="text-primary fw-bold">3</a> </td>
+                        <td class="fw-bold d-flex align-items-center">
+                            <svg class="icon icon-xxs text-gray-500 me-2" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="youtube" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><path fill="currentColor" d="M549.655 124.083c-6.281-23.65-24.787-42.276-48.284-48.597C458.781 64 288 64 288 64S117.22 64 74.629 75.486c-23.497 6.322-42.003 24.947-48.284 48.597-11.412 42.867-11.412 132.305-11.412 132.305s0 89.438 11.412 132.305c6.281 23.65 24.787 41.5 48.284 47.821C117.22 448 288 448 288 448s170.78 0 213.371-11.486c23.497-6.321 42.003-24.171 48.284-47.821 11.412-42.867 11.412-132.305 11.412-132.305s0-89.438-11.412-132.305zm-317.51 213.508V175.185l142.739 81.205-142.739 81.201z"></path></svg>
+                            youtube.com
+                        </td>
+                        <td>
+                            Social
+                        </td>
+                        <td>
+                            <a class="small fw-bold" href="#">Arts and Entertainment</a>
+                        </td>
+                        <td>
+                            #2
+                        </td>
+                        <td>
+                            <div class="row d-flex align-items-center">
+                                <div class="col-12 col-xl-2 px-0">
+                                    <div class="small fw-bold">18%</div>
+                                </div>
+                                <div class="col-12 col-xl-10 px-0 px-xl-1">
+                                    <div class="progress progress-lg mb-0">
+                                        <div class="progress-bar bg-dark" role="progressbar" aria-valuenow="18" aria-valuemin="0" aria-valuemax="100" style="width: 18%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            -                                
+                        </td>
+                    </tr>
+                    <!-- End of Item -->
+
+                    <!-- Item -->
+                    <tr>
+                        <td><a href="#" class="text-primary fw-bold">4</a> </td>
+                        <td class="fw-bold d-flex align-items-center">
+                            <svg class="icon icon-xxs text-gray-500 me-2" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="yahoo" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M223.69,141.06,167,284.23,111,141.06H14.93L120.76,390.19,82.19,480h94.17L317.27,141.06Zm105.4,135.79a58.22,58.22,0,1,0,58.22,58.22A58.22,58.22,0,0,0,329.09,276.85ZM394.65,32l-93,223.47H406.44L499.07,32Z"></path></svg>
+                            yahoo.com
+                        </td>
+                        <td>
+                            Referral
+                        </td>
+                        <td>
+                            <a class="small fw-bold" href="#">News and Media</a>
+                        </td>
+                        <td>
+                            #11
+                        </td>
+                        <td>
+                            <div class="row d-flex align-items-center">
+                                <div class="col-12 col-xl-2 px-0">
+                                    <div class="small fw-bold">8%</div>
+                                </div>
+                                <div class="col-12 col-xl-10 px-0 px-xl-1">
+                                    <div class="progress progress-lg mb-0">
+                                        <div class="progress-bar bg-dark" role="progressbar" aria-valuenow="8" aria-valuemin="0" aria-valuemax="100" style="width: 8%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="text-danger">
+                            <div class="d-flex align-items-center">
+                                <svg class="icon icon-xs me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+                                <span class="fw-bold">9.45%</span>
+                            </div>                                
+                        </td>
+                    </tr>
+                    <!-- End of Item -->
+
+                    <!-- Item -->
+                    <tr>
+                        <td><a href="#" class="text-primary fw-bold">5</a> </td>
+                        <td class="fw-bold d-flex align-items-center">
+                            <svg class="icon icon-xxs text-gray-500 me-2" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="twitter" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"></path></svg>
+                            twitter.com
+                        </td>
+                        <td>
+                            Social
+                        </td>
+                        <td>
+                            <a class="small fw-bold" href="#">Social Networks</a>
+                        </td>
+                        <td>
+                        #4
+                        </td>
+                        <td>
+                            <div class="row d-flex align-items-center">
+                                <div class="col-12 col-xl-2 px-0">
+                                    <div class="small fw-bold">4%</div>
+                                </div>
+                                <div class="col-12 col-xl-10 px-0 px-xl-1">
+                                    <div class="progress progress-lg mb-0">
+                                        <div class="progress-bar bg-dark" role="progressbar" aria-valuenow="4" aria-valuemin="0" aria-valuemax="100" style="width: 4%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            -                                
+                        </td>
+                    </tr>
+                    <!-- End of Item -->
+                </tbody>
+            </table>
+            <br>
+                <nav aria-label="Page navigation example">
+                    <ul class="pagination">
+                        {% if partners.has_prev %}
+                            <li class="page-item"> <a class="page-link" href="{{ url_for('tables_css', page=partners.prev_num) }}">Previous</a></li>
+                        {% else %}
+                            <li class="page-item disabled"><a class="page-link disabled" href="#">Previous</a></li>
+                        {% endif %}
+                            
+                            {% for page in partners.iter_pages(left_edge=3, right_edge=3) %}
+                                {% if page %}
+                            
+                                    {% if page ==partners.page %}
+                                        <li class="page-item active"><a class="page-link" href="{{ url_for('tables_css', page=page) }}">{{ page }}</a></li>
+                                    {% else %}
+                                        <li class="page-item"><a class="page-link" href="{{ url_for('tables_css', page=page) }}">{{ page }}</a></li>
+                                    {% endif %}
+                            
+                                {% else %}
+                                    <li class="page-item disabled" id="example_ellipsis"><a href="#" class="page-link">…</a></li> 
+                                {% endif %}
+                            {% endfor %}
+                            
+                        {% if partners.has_next %}
+                            <li class="page-item"> <a class="page-link" href="{{ url_for('tables_css', page=partners.next_num) }}">Next</a></li>
+                        {% else %}
+                            <li class="page-item disabled"><a class="page-link btn disabled" href="#">Next</a></li>
+                        {% endif %}
+                            
+                    </ul>
+                </nav>
+
+        </div>
+    </div>
+</div>
+</div>
+
+<main>
+    <section class="vh-100 d-flex align-items-center justify-content-center">
+        <div class="container">
+            <div class="row">
+                <div class="col-12 text-center d-flex align-items-center justify-content-center">
+                    <div>
+                        <img class="img-fluid w-75" src="{{ url_for('static', filename="404.svg") }}" alt="404 not found">
+                        <h1 class="mt-5">
+                            Access <span class="fw-bolder text-primary">denied</span>
+                        </h1>
+                        <p class="lead my-4">
+                            Please contact support or authenticate
+                        </p>
+                        <a class="btn btn-dark animate-hover" href="/home">
+                           <i class="fas fa-chevron-left me-3 ps-2 animate-left-3"></i>LOGIN</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<section class="vh-lg-100 mt-5 mt-lg-0 bg-soft d-flex align-items-center">
+    <div class="container">
+        <p class="text-center">
+            APP Dashboard
+        </p>
+        <div class="row justify-content-center form-bg-image" data-background-lg="{{ url_for('static', filename="signin.svg") }}">
+            <div class="col-12 d-flex align-items-center justify-content-center">
+                <div class="bg-white shadow border-0 rounded border-light p-4 p-lg-5 w-100 fmxw-500">
+                    <div class="text-center text-md-center mb-4 mt-md-0">
+                        <h1 class="mb-0 h3">
+                            DKN APP - Sign IN
+                        </h1>
+                        <br />
+                        <p>
+                            {% if msg %}
+                                <span class="text-danger">{{ msg | safe }}</span>
+                            {% else %}
+                                Add your credentials
+                            {% endif %}                                     
+                        </p> 
+                    </div>
+                    <form method="post" action="" class="mt-4">
+                        
+                        {{ form.hidden_tag() }}
+
+                        <!-- Form -->
+                        <div class="form-group mb-4">
+                            <label for="email">Username</label>
+                            <div class="input-group">
+                                <span class="input-group-text" id="basic-addon1">
+                                    <span class="fas fa-user-circle"></span>
+                                </span>
+                                {{ form.email(placeholder="Username", class="form-control") }}
+                            </div>  
+                        </div>
+                        <!-- End of Form -->
+                        <div class="form-group">
+                            <!-- Form -->
+                            <div class="form-group mb-4">
+                                <label for="password">Your Password</label>
+                                <div class="input-group">
+                                    <span class="input-group-text" id="basic-addon2">
+                                        <span class="fas fa-unlock-alt"></span>
+                                    </span>
+                                    {{ form.password(placeholder="Password", class="form-control", type="password") }}
+                                </div>  
+                            </div>
+                            <!-- End of Form -->
+                            <div class="d-flex justify-content-between align-items-top mb-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="" id="remember">
+                                    <label class="form-check-label mb-0" for="remember">
+                                      Remember me
+                                    </label>
+                                </div>
+                                <div>
+                                    <a href="#" class="fw-bold text-right">Register</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" name="login" class="btn btn-gray-800">Sign IN</button>
+                        </div>
+                    </form>
+                    <br />
+                    
+                    {% if config.SOCIAL_AUTH_GITHUB %}
+                        <div class="mt-3 mb-4 text-center">
+                            <span class="fw-normal">
+                                Or login with
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-center my-4">
+                        <a href="{{url_for('authentication_blueprint.login_github')}}" 
+                            class="btn btn-pill btn-outline-gray-500" aria-label="github button" title="github button">
+                                <svg class="icon icon-xxs" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="github" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><path fill="currentColor" d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"></path></svg>
+                            </a>
+                        </div>
+                    {% endif %}    
+
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="container">
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card card-body border-0 shadow mb-4">
+            <h2 class="h5 mb-4">General information</h2>
+            <form>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div>
+                            <label for="first_name">First Name</label>
+                            <input class="form-control" id="first_name" type="text" placeholder="Enter your first name" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div>
+                            <label for="last_name">Last Name</label>
+                            <input class="form-control" id="last_name" type="text" placeholder="Also your last name" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="row align-items-center">
+                    <div class="col-md-6 mb-3">
+                        <label for="birthday">Birthday</label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <svg class="icon icon-xs" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path></svg>
+                            </span>
+                            <input data-datepicker="" class="form-control" id="birthday" type="text" placeholder="dd/mm/yyyy" required>                                               
+                          </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="gender">Gender</label>
+                        <select class="form-select mb-0" id="gender" aria-label="Gender select example">
+                            <option selected>Gender</option>
+                            <option value="1">Female</option>
+                            <option value="2">Male</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input class="form-control" id="email" type="email" placeholder="name@company.com" value="Hello" readonly> 
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="form-group">
+                            <label for="phone">Phone</label>
+                            <input class="form-control" id="phone" type="number" placeholder="+12-345 678 910" required>
+                        </div>
+                    </div>
+                </div>
+                <h2 class="h5 my-4">Location</h2>
+                <div class="row">
+                    <div class="col-sm-9 mb-3">
+                        <div class="form-group">
+                            <label for="address">Address</label>
+                            <input class="form-control" id="address" type="text" placeholder="Enter your home address" required>
+                        </div>
+                    </div>
+                    <div class="col-sm-3 mb-3">
+                        <div class="form-group">
+                            <label for="number">Number</label>
+                            <input class="form-control" id="number" type="number" placeholder="No." required>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-4 mb-3">
+                        <div class="form-group">
+                            <label for="city">City</label>
+                            <input class="form-control" id="city" type="text" placeholder="City" required>
+                        </div>
+                    </div>
+                    <div class="col-sm-4 mb-3">
+                        <label for="state">State</label>
+                        <select class="form-select w-100 mb-0" id="state" name="state" aria-label="State select example">
+                            <option selected>State</option>
+                            <option value="AL">Alabama</option>
+                            <option value="AK">Alaska</option>
+                            <option value="AZ">Arizona</option>
+                            <option value="AR">Arkansas</option>
+                            <option value="CA">California</option>
+                            <option value="CO">Colorado</option>
+                            <option value="CT">Connecticut</option>
+                            <option value="DE">Delaware</option>
+                            <option value="DC">District Of Columbia</option>
+                            <option value="FL">Florida</option>
+                            <option value="GA">Georgia</option>
+                            <option value="HI">Hawaii</option>
+                            <option value="ID">Idaho</option>
+                            <option value="IL">Illinois</option>
+                            <option value="IN">Indiana</option>
+                            <option value="IA">Iowa</option>
+                            <option value="KS">Kansas</option>
+                            <option value="KY">Kentucky</option>
+                            <option value="LA">Louisiana</option>
+                            <option value="ME">Maine</option>
+                            <option value="MD">Maryland</option>
+                            <option value="MA">Massachusetts</option>
+                            <option value="MI">Michigan</option>
+                            <option value="MN">Minnesota</option>
+                            <option value="MS">Mississippi</option>
+                            <option value="MO">Missouri</option>
+                            <option value="MT">Montana</option>
+                            <option value="NE">Nebraska</option>
+                            <option value="NV">Nevada</option>
+                            <option value="NH">New Hampshire</option>
+                            <option value="NJ">New Jersey</option>
+                            <option value="NM">New Mexico</option>
+                            <option value="NY">New York</option>
+                            <option value="NC">North Carolina</option>
+                            <option value="ND">North Dakota</option>
+                            <option value="OH">Ohio</option>
+                            <option value="OK">Oklahoma</option>
+                            <option value="OR">Oregon</option>
+                            <option value="PA">Pennsylvania</option>
+                            <option value="RI">Rhode Island</option>
+                            <option value="SC">South Carolina</option>
+                            <option value="SD">South Dakota</option>
+                            <option value="TN">Tennessee</option>
+                            <option value="TX">Texas</option>
+                            <option value="UT">Utah</option>
+                            <option value="VT">Vermont</option>
+                            <option value="VA">Virginia</option>
+                            <option value="WA">Washington</option>
+                            <option value="WV">West Virginia</option>
+                            <option value="WI">Wisconsin</option>
+                            <option value="WY">Wyoming</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="form-group">
+                            <label for="zip">ZIP</label>
+                            <input class="form-control" id="zip" type="tel" placeholder="ZIP" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <button class="btn btn-gray-800 mt-2 animate-up-2" type="submit">Save all</button>
+                </div>
+            </form>
+      
+        </div>
+    </div>
+    </div>
+
+
+    <main>
+        <section class="vh-lg-100 mt-5 mt-lg-0 bg-soft d-flex align-items-center">
+            <div class="container">
+                <p class="text-center">
+                    Open-source Flask Dashboard
+                </p>
+                <div class="row justify-content-center form-bg-image" data-background-lg="{{ url_for('static', filename="signin.svg") }}">
+                    <div class="col-12 d-flex align-items-center justify-content-center">
+                        <div class="bg-white shadow border-0 rounded border-light p-4 p-lg-5 w-100 fmxw-500">
+                            <div class="text-center text-md-center mb-4 mt-md-0">
+                                <h1 class="mb-0 h3">
+                                    Flask Volt - Sign UP
+                                </h1>
+                                <br />
+                                <p>
+                                    {% if msg %}
+                                        {{ msg | safe }}
+                                    {% else %}
+                                        Add your credentials
+                                    {% endif %}                                     
+                                </p> 
+                            </div>
+                            
+                            {% if success %}
+
+                                <div class="d-grid">
+                                    <a href="{{ url_for('authentication_blueprint.login') }}" 
+                                       class="btn btn-gray-800">Sign IN</a>
+                                </div>
+
+                            {% else %}
+
+                                <form method="post" action="" class="mt-4">
+                                    
+                                    {{ form.hidden_tag() }}
+
+                                    <div class="form-group mb-4">
+                                        <label for="email">Username</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text" id="basic-addon1">
+                                                <span class="fas fa-user-circle"></span>
+                                            </span>
+                                            {{ form.email(placeholder="Username", class="form-control") }}
+                                        </div>  
+                                    </div>
+
+                                    <!-- Form -->
+                                    <div class="form-group mb-4">
+                                        <label for="email">Your Email</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text" id="basic-addon1">
+                                                <span class="fas fa-envelope"></span>
+                                            </span>
+                                            {{ form.email(placeholder="Email", class="input form-control", type="email") }}
+                                        </div>  
+                                    </div>
+                                    <!-- End of Form -->
+                                    <div class="form-group">
+                                        <!-- Form -->
+                                        <div class="form-group mb-4">
+                                            <label for="password">Your Password</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text" id="basic-addon2">
+                                                    <span class="fas fa-unlock-alt"></span>
+                                                </span>
+                                                {{ form.email(placeholder="Password", class="form-control", type="password") }}
+                                            </div>  
+                                        </div>
+                                        <!-- End of Form -->
+                                        <div class="mb-4">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" value="" id="remember">
+                                                <label class="form-check-label fw-normal mb-0" for="remember">
+                                                    I agree to the <a href="#" class="fw-bold">terms and conditions</a>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="d-grid">
+                                        <button type="submit" name="register" class="btn btn-gray-800">Sign UP</button>
+                                    </div>
+                                </form>
+                                <br />
+                                <div class="d-flex justify-content-center align-items-center mt-4">
+                                    <span class="fw-normal">
+                                        Already have an account? 
+                                        <a href="/" class="fw-bold">Sign IN</a>
+                                    </span>
+                                </div>
+                            
+                            {% endif %}
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <!-- Footer Start -->
+    <div class=" bg-footer1 text-white mt-5 py-5 px-sm-3 px-md-5">
+        <div class="row pt-5">
+            <div class="col-lg-7 col-md-6">
+                <div class="row">
+                    <div class="col-md-6 mb-5">
+                        <h3 class="text-white mb-4">Get In Touch</h3>
+                        <p><i class="fa fa-map-marker-alt mr-2"></i>123 Street, New York, USA</p>
+                        <p><i class="fa fa-phone-alt mr-2"></i>+012 345 67890</p>
+                        <p><i class="fa fa-envelope mr-2"></i>info@example.com</p>
+                        <div class="d-flex justify-content-start mt-4">
+                            <a class="btn btn-outline-light btn-social mr-2" href="#"><i class="fab fa-twitter"></i></a>
+                            <a class="btn btn-outline-light btn-social mr-2" href="#"><i class="fab fa-facebook-f"></i></a>
+                            <a class="btn btn-outline-light btn-social mr-2" href="#"><i class="fab fa-linkedin-in"></i></a>
+                            <a class="btn btn-outline-light btn-social" href="#"><i class="fab fa-instagram"></i></a>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-5">
+                        <h3 class="text-primary mb-4">Quick Links</h3>
+                        <div class="d-flex flex-column justify-content-start">
+                            <a class="text-white mb-2" href="#"><i class="fa fa-angle-right mr-2"></i>Home</a>
+                            <a class="text-white mb-2" href="#"><i class="fa fa-angle-right mr-2"></i>About Us</a>
+                            <a class="text-white mb-2" href="#"><i class="fa fa-angle-right mr-2"></i>Our Services</a>
+                            <a class="text-white mb-2" href="#"><i class="fa fa-angle-right mr-2"></i>Pricing Plan</a>
+                            <a class="text-white" href="#"><i class="fa fa-angle-right mr-2"></i>Contact Us</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5 col-md-6 mb-5">
+                <h3 class="text-primary mb-4">Newsletter</h3>
+                <p>Rebum labore lorem dolores kasd est, et ipsum amet et at kasd, ipsum sea tempor magna tempor. Accu kasd sed ea duo ipsum. Dolor duo eirmod sea justo no lorem est diam</p>
+                <div class="w-100">
+                    <div class="input-group">
+                        <input type="text" class="form-control border-light" style="padding: 30px;" placeholder="Your Email Address">
+                        <div class="input-group-append">
+                            <button class="btn btn-primary px-4">Sign Up</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid bg-dark text-white border-top py-4 px-sm-3 px-md-5" style="border-color: #3E3E4E !important;">
+        <div class="row">
+            <div class="col-lg-6 text-center text-md-left mb-3 mb-md-0">
+                <p class="m-0 text-white">&copy; <a href="#">Your Site Name</a>. All Rights Reserved. 
+				
+				<!--/*** This template is free as long as you keep the footer author’s credit link/attribution link/backlink. If you'd like to use the template without the footer author’s credit link/attribution link/backlink, you can purchase the Credit Removal License from "https://htmlcodex.com/credit-removal". Thank you for your support. ***/-->
+				Designed by <a href="https://htmlcodex.com">HTML Codex</a>
+                </p>
+            </div>
+            <div class="col-lg-6 text-center text-md-right">
+                <ul class="nav d-inline-flex">
+                    <li class="nav-item">
+                        <a class="nav-link text-white py-0" href="#">Privacy</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white py-0" href="#">Terms</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white py-0" href="#">FAQs</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white py-0" href="#">Help</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <!-- Footer End -->

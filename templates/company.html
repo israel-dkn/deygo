@@ -1,0 +1,571 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    {% block title%}<title>Partner - My Dash</title>{% endblock %}
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="Free HTML Templates" name="keywords">
+    <meta content="Free HTML Templates" name="description">
+
+    <!-- Favicon -->
+    <link href="img/favicon.ico" rel="icon">
+
+    <!-- Google Web Fonts -->
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Libraries Stylesheet -->
+    <link href="lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
+
+    <!-- Customized Bootstrap Stylesheet -->
+    
+    
+    
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+</head>
+<link type="text/css" href="{{ url_for('static', filename="volt.css") }}" rel="stylesheet">
+
+<body>
+    <div class="sticky-top">
+        {% with messages = get_flashed_messages(with_categories=true) %} 
+        {% if messages %} {% for category, message in messages %} 
+        {% if category == 'error' %}
+            <div class="alert alert-danger alter-dismissable fade show" role="alert">
+              {{ message }}
+              <button type="button" class="close" data-dismiss="alert">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+        {% elif category == 'warning' %}
+        <div class="alert alert-warning alter-dismissable fade show" role="alert">
+            <b>{{ message }}</b>
+            <button type="button" class="close" data-dismiss="alert">
+            <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+            {% else %}
+            <div class="alert alert-success alter-dismissable fade show" role="alert">
+              {{ message }}
+              <button type="button" class="close" data-dismiss="alert">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            {% endif %} {% endfor %} {% endif %} {% endwith %}
+        </div>
+
+<!--Test Script for location -->
+{% if current_user.driver_status == "available" or current_user.driver_status == "on-ride" %}
+<script>
+    async function getLocation() {
+        return new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject);
+        });
+    }
+
+    async function sendLocation(latitude, longitude) {
+        const url = '/save_location';
+        const data = {
+            latitude: latitude,
+            longitude: longitude
+        };
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        const result = await response.text();
+        console.log(result);
+    }
+
+    async function trackLocation() {
+        try {
+            const position = await getLocation();
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+            await sendLocation(latitude, longitude);
+        } catch (error) {
+            console.error(error);
+
+        } finally {
+            // Schedule the next location update after a delay (e.g., 30 seconds)
+            setTimeout(trackLocation, 30000);
+        }
+    }
+        
+ // Start tracking location immediately
+ trackLocation();
+    setInterval(trackLocation, 30000); // Track location every 30 seconds
+</script>
+{% endif %}
+
+
+    <!-- Topbar Start -->
+    <div class="container-fluid bg-dark">
+        <div class="row py-2 px-lg-5">
+            <div class="col-lg-6 text-center text-lg-left mb-2 mb-lg-0">
+                <div class="d-inline-flex align-items-center text-white">
+                    <small><i class="fa fa-phone-alt mr-2"></i>+012 345 6789</small>
+                    <small class="px-3">|</small>
+                    <small><i class="fa fa-envelope mr-2"></i>info@example.com</small>
+                </div>
+            </div>
+            <div class="col-lg-6 text-center text-lg-right">
+                <div class="d-inline-flex align-items-center">
+                    <a class="text-white px-2" href="">
+                        <i class="fab fa-facebook-f"></i>
+                    </a>
+                    <a class="text-white px-2" href="">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    <a class="text-white px-2" href="">
+                        <i class="fab fa-linkedin-in"></i>
+                    </a>
+                    <a class="text-white px-2" href="">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                    <a class="text-white pl-2" href="">
+                        <i class="fab fa-youtube"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Topbar End -->
+
+
+    <!-- Navbar Start -->
+    {% block nav %}
+    <div class="container-fluid p-0">
+        <nav class="navbar navbar-expand-lg bg-light navbar-light py-3 py-lg-0 px-lg-5">
+            <a href="index.html" class="navbar-brand ml-lg-3">
+                <h1 class="m-0 display-5 text-uppercase text-primary"><i class="fa fa-truck mr-2"></i>Faster</h1>
+            </a>
+            <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbarCollapse">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+           
+            <div class="collapse navbar-collapse justify-content-between px-lg-3" id="navbarCollapse">
+                <div class="navbar-nav m-auto py-0">
+                    <a href="/company" class="nav-item nav-link {% block nava %}active{% endblock %}">My Dash</a>
+                    <a href="/company/my-rides" class="nav-item nav-link {% block navc %}{% endblock %}">My Rides</a>
+                    <a href="/" class="nav-item nav-link">Feedbacks/Ratings</a> 
+                    <a href="/" class="nav-item nav-link">Financials</a>
+                    {% if current_user.driver_status == "available" %}
+                    <a href="{{url_for("go_offline")}}" class="nav-item nav-link text-danger">GO OFFLINE</a>
+                    {% elif current_user.driver_status == "on-ride" %}
+                    <a href="" class="nav-item nav-link text-danger disabled ">GO OFFLINE</a>
+                    {% else %}
+                    <a href="{{url_for("go_online")}}" class="nav-item nav-link text-success">GO ONLINE</a>
+                    {% endif %}
+                </div>
+                <a href="" class="btn btn-dark py-2 px-4 d-none d-lg-block disabled">{{ ses }}</a>
+            </div>
+           
+        </nav>
+    </div>
+    {% endblock %}
+    <!-- Navbar End -->
+
+
+{% block header %}
+    <!-- Header Start -->
+    <div class="jumbotron jumbotron-fluid mb-5">
+        
+        <div class="container text-center py-5">
+            
+            {% if current_user.driver_status == "available" %}
+            <h1 class="text-primary mb-4"><span class="badge badge-pill badge-success"> {{current_user.driver_status}}</span></h1>
+            {% elif current_user.driver_status == "offline" %}
+            <h1 class="text-primary mb-4"><span class="badge badge-pill badge-danger"> {{current_user.driver_status}}</span></h1>
+            {% elif current_user.driver_status == "on-ride" %}
+            <h1 class="text-primary mb-4"><span class="badge badge-pill badge-warning "> {{current_user.driver_status}}</span></h1>
+            {% endif %}
+            <h1 class="text-white display-3 mb-3" ><small>Hello,</small> {{ current_user.username }}!</a></h1>
+            
+            <div class="d-inline-flex align-items-center text-white">
+                <p class="m-0"><a class="text-white" href="">Abuja</a></p>
+                <i class="fa fa-circle px-3"></i>
+            
+                <p class="m-0"><small>Earnings:</small> NGN <b>{{orders_sum|int|format_number}} </b> </p>
+              
+                <i class="fa fa-circle px-3"></i>
+                <p class="m-0"><small>Completed: </small><b>{{orders_count}} 🚴 </b></p>
+            </div>
+        </div>
+    </div>
+    <!-- Header End -->
+{% endblock %}
+
+{% block content %}
+
+
+{% if current_user.driver_status == "on-ride" and last_order.id is not none %}
+    
+    <div class="d-flex container justify-content-center mb-3">
+        <a href="{{ url_for('order_details', id=last_order.id)}}"> <h2 class="text-primary"> <span class="badge badge-pill badge-warning">Complete Current Ride</span></h2></a>
+    </div>
+    
+{% else  %}
+    <div class="d-flex container justify-content-center mb-3">
+        <a> <h2 class="text-primary"> <span class="badge badge-pill badge-secondary"><i>no pending</i></span></h2></a>
+    </div>
+{% endif %}
+
+
+
+
+
+ <!-- POP-UP NOTIFICATION 
+ <div class="modal" id="popup{{ orders.id }}" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">A NEW ORDER HAS BEEN ASSIGNED TO YOU</h5>
+          <span>Just Now</span>
+        </div>
+        <div class="modal-body">
+          <p> {{orders.placed_by_id}} offer up!</p>
+        </div>
+        <div class="modal-footer justify-content-center">
+          <button type="button" id="dismiss-btn" class="btn btn-outline-primary btn-lg">Decline</button>
+          <button type="button" class="btn btn-primary btn-lg w-75" >Accept</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+END POP-UP NOTIFICATION -->
+
+<!--End New Ride Requests-->
+
+{% for orders in orders %}
+
+{% if current_user.id == orders.available_riders|int and current_user.driver_status=="available" %}
+                {% set variable1 = timestamp %}
+                {% set variable2 = orders.time_created %}
+            
+                {% set result = variable1 - variable2 %}
+
+                {% set result2 = result/60 %}
+
+                {% set resultmin = result2|total_seconds %}
+
+{% if resultmin|int < 3 %}
+<!-- POP-UP NOTIFICATION JS -->
+<script>
+    // JavaScript code for showing the popup
+    window.addEventListener('DOMContentLoaded', function() {
+        var popup = document.getElementById('popup');
+        var dismissBtn = document.getElementById('dismiss-btn');
+    
+    dismissBtn.addEventListener('click', function() {
+      popup.style.display = 'none';
+    });
+
+        popup.style.display = 'block';
+      });
+  </script>
+<!-- END POP-UP NOTIFICATION JS -->
+
+<!-- POP-UP NOTIFICATION -->
+<div class="modal" id="popup" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">A NEW ORDER HAS BEEN ASSIGNED TO YOU!!</h5>
+          <span>
+            {% if resultmin|int < 1 %} just now
+            {% elif resultmin|int < 2 %} 2 min left
+            {% else %} expiring soon!
+        {% endif %}</span>
+        </div>
+        <div class="modal-body">
+          <h6><small>FROM:</small> {{ orders.pickup }} </h6>
+          <h6><small>TO:</small> {{ orders.dropoff }}</h6>
+          <h5><small>Cost:</small> {{orders.delivery_cost|format_number}}</h5>
+        </div>
+        <div class="modal-footer justify-content-center">
+          <button type="button" id="dismiss-btn" class="btn btn-outline-primary btn-lg">Decline</button>
+          <a href="{{ url_for('order_accepted', id=orders.id)}}" target="_blank" type="button" class="btn btn-primary btn-lg w-75" >Accept</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- END POP-UP NOTIFICATION -->
+{% endif %}
+{% endif %}
+
+    {% if orders.status == "pending" %}
+    <div class="container">
+        <div class="card">
+            <div class="card-body">
+                <span class="card-text">Requested By: <h5 style= "display: inline;">{{orders.order.first_name}}</h5></span>
+        
+                <p class="card-text">Time: 
+                {% set variable1 = timestamp %}
+                {% set variable2 = orders.time_created %}
+            
+
+                {% set result = variable1 - variable2 %}
+
+                
+
+                {% set result2 = result/60 %}
+
+                
+                {% set resultmin = result2|total_seconds %}
+                {% set hours = resultmin/60 %}
+                {% set days = resultmin/1440 %}
+                
+                {% if resultmin|int < 1 %} just now
+                {% elif resultmin|int == 1 %} 1 min ago
+                {% elif resultmin|int < 60  %} {{ resultmin|int }} min ago
+                {% elif resultmin|int < 1440 %} {{ hours|int }} hour(s) ago
+                {% else %} {{ days|int }} days ago
+                {% endif %}
+
+            </span> </p>
+
+
+            <hr style="width:95%;text-align:left;margin-left:0">
+                
+                <p><h6><i class="far fa-dot-circle text-primary mr-3"></i>Pickup: {{ orders.pickup }}</h6>
+                <p><h6><i class="far fa-dot-circle text-primary mr-3"></i>Deliver: {{ orders.dropoff }} </h6>
+            
+        <hr style="width:95%;text-align:left;margin-left:0">
+    
+            <div class="d-flex justify-content-center">  
+                <div class="ml-4"><span class="far fa-dot-circle mr-3"></span>Time:<b> {{orders.delivery_time}} mins</b></div>
+                <div class="ml-4"><span class="far fa-dot-circle mr-3"></span>Distance:<b> {{orders.delivery_distance}} km </b> </div>
+                <div class="ml-4"><span class="far fa-dot-circle mr-3"></span>Price: <b>NGN <h4 style= "display: inline;"> {{orders.delivery_cost|format_number}} </h4></b></div>
+                
+            </div>
+                
+            
+            <br>
+            <div class="d-flex justify-content-center"> 
+            <a href="#" class="btn btn-outline-primary btn-lg rounded">Decline</a>
+            {% if last_order_count > 2 %}
+                <a href="" class="btn btn-primary w-100 ml-2 btn-lg rounded disabled">Cannot Accept More Requests</a>
+            {% else %}
+                <a href="{{ url_for('order_accepted', id=orders.id)}}" class="btn btn-primary w-100 ml-2 btn-lg rounded">Accept</a>
+            {% endif %}
+            </div>
+            </div>
+        </div>
+        </div>
+        <br>
+        {% endif %}
+
+{% endfor %}
+
+   
+
+
+
+    
+
+
+
+
+
+
+<div class="container card">
+    <div class="card-body">
+    <h4> Delivery History </h4>
+<div class="container">
+    <div class="card border-0 shadow mb-4">
+        <div class="card-body">
+            
+            <div class="table-responsive">
+                <table class="table table-centered table-nowrap mb-0 rounded">
+                    <thead class="thead-light">
+                        <tr>
+                            <th class="border-0 rounded-start">#</th>
+                            <th class="border-0">Time</th>
+                            <th class="border-0">From</th>
+                            <th class="border-0">To</th>
+                            <th class="border-0">Status</th>
+                            <th class="border-0">Rider</th> 
+                            
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Item -->
+                        {% for order_qry in order_qry %}
+                        {% if order_qry.status == 'canceled' %}
+                         <!-- if order is cancelled, strikethrough all items on the column -->
+                        <tr>
+                            <td><a href="#" class="text-primary fw-bold">{{ order_qry.id }}</a> </td>
+                            <td class="fw-bold d-flex align-items-center">
+                                <s><i> {{ order_qry.time_created.strftime("%m/%d/%Y, %H:%M:%S") }}</s>
+                            </td>
+                            
+                            <td>
+                                <s><i>{{ order_qry.pickup }} </s>
+                            </td>
+
+
+                            <td>
+                                <s><i>{{ order_qry.dropoff}}</s>
+                            </td>
+
+                            <td>
+                                <span class="badge badge-pill p-2 badge-danger">   {{ order_qry.status}}</span>
+                            </td>
+
+                            <td>
+                               
+                                <s><i>canceled</i></s>
+                            </td>
+                        
+                         {% else %}
+                         
+                            <tr>
+                                
+                                <td><a href="#" class="text-primary fw-bold">{{ order_qry.id }}</a> </td>
+                                <td class="fw-bold d-flex align-items-center">
+                                   {{ order_qry.time_created.strftime("%m/%d/%Y, %H:%M:%S") }}
+                                </td>
+    
+                                
+                                 <td>
+                                    {{ order_qry.pickup }} 
+                                </td>
+    
+    
+                                <td>
+                                    {{ order_qry.dropoff}}
+                                </td>
+    
+                                <td>
+                                    {{ order_qry.status}}
+                                </td>
+    
+                                <td>
+                                    {{ order_qry.order.first_name}}
+                                </td>
+                             
+                        
+                        {% endif %}
+                        {% endfor %}
+                      
+                        <!-- End of Item -->
+                    </tbody>
+                </table>
+                <br>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+</div>
+
+
+    
+{% endblock %}
+
+
+    <!-- Footer Start -->
+    <div class="container-fluid bg-dark text-white mt-5 py-5 px-sm-3 px-md-5">
+        <div class="row pt-5">
+            <div class="col-lg-7 col-md-6">
+                <div class="row">
+                    <div class="col-md-6 mb-5">
+                        <h3 class="text-primary mb-4">Get In Touch</h3>
+                        <p><i class="fa fa-map-marker-alt mr-2"></i>123 Street, New York, USA</p>
+                        <p><i class="fa fa-phone-alt mr-2"></i>+012 345 67890</p>
+                        <p><i class="fa fa-envelope mr-2"></i>info@example.com</p>
+                        <div class="d-flex justify-content-start mt-4">
+                            <a class="btn btn-outline-light btn-social mr-2" href="#"><i class="fab fa-twitter"></i></a>
+                            <a class="btn btn-outline-light btn-social mr-2" href="#"><i class="fab fa-facebook-f"></i></a>
+                            <a class="btn btn-outline-light btn-social mr-2" href="#"><i class="fab fa-linkedin-in"></i></a>
+                            <a class="btn btn-outline-light btn-social" href="#"><i class="fab fa-instagram"></i></a>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-5">
+                        <h3 class="text-primary mb-4">Quick Links</h3>
+                        <div class="d-flex flex-column justify-content-start">
+                            <a class="text-white mb-2" href="#"><i class="fa fa-angle-right mr-2"></i>Home</a>
+                            <a class="text-white mb-2" href="#"><i class="fa fa-angle-right mr-2"></i>About Us</a>
+                            <a class="text-white mb-2" href="#"><i class="fa fa-angle-right mr-2"></i>Our Services</a>
+                            <a class="text-white mb-2" href="#"><i class="fa fa-angle-right mr-2"></i>Pricing Plan</a>
+                            <a class="text-white" href="#"><i class="fa fa-angle-right mr-2"></i>Contact Us</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5 col-md-6 mb-5">
+                <h3 class="text-primary mb-4">Newsletter</h3>
+                <p>Rebum labore lorem dolores kasd est, et ipsum amet et at kasd, ipsum sea tempor magna tempor. Accu kasd sed ea duo ipsum. Dolor duo eirmod sea justo no lorem est diam</p>
+                <div class="w-100">
+                    <div class="input-group">
+                        <input type="text" class="form-control border-light" style="padding: 30px;" placeholder="Your Email Address">
+                        <div class="input-group-append">
+                            <button class="btn btn-primary px-4">Sign Up</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid bg-dark text-white border-top py-4 px-sm-3 px-md-5" style="border-color: #3E3E4E !important;">
+        <div class="row">
+            <div class="col-lg-6 text-center text-md-left mb-3 mb-md-0">
+                <p class="m-0 text-white">&copy; <a href="#">Your Site Name</a>. All Rights Reserved. 
+				
+				<!--/*** This template is free as long as you keep the footer author’s credit link/attribution link/backlink. If you'd like to use the template without the footer author’s credit link/attribution link/backlink, you can purchase the Credit Removal License from "https://htmlcodex.com/credit-removal". Thank you for your support. ***/-->
+				Designed by <a href="https://htmlcodex.com">HTML Codex</a>
+                </p>
+            </div>
+            <div class="col-lg-6 text-center text-md-right">
+                <ul class="nav d-inline-flex">
+                    <li class="nav-item">
+                        <a class="nav-link text-white py-0" href="#">Privacy</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white py-0" href="#">Terms</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white py-0" href="#">FAQs</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white py-0" href="#">Help</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <!-- Footer End -->
+
+
+    <!-- Back to Top -->
+    <a href="#" class="btn btn-lg btn-primary back-to-top"><i class="fa fa-angle-double-up"></i></a>
+
+
+    <!-- JavaScript Libraries -->
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.bundle.min.js"></script>
+    <script src="lib/easing/easing.min.js"></script>
+    <script src="lib/waypoints/waypoints.min.js"></script>
+    <script src="lib/counterup/counterup.min.js"></script>
+    <script src="lib/owlcarousel/owl.carousel.min.js"></script>
+
+    <!-- Contact Javascript File -->
+    <script src="mail/jqBootstrapValidation.min.js"></script>
+    <script src="mail/contact.js"></script>
+
+    <!-- Template Javascript -->
+    <script src="js/main.js"></script>
+</body>
+
+</html>
+
