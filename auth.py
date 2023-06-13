@@ -1088,7 +1088,7 @@ def credit_account(id, amount):
 
 
 
-@app.route("/user-dash/credit-account/", methods=["POST", "GET"])
+@app.route("/user-dash/credit-account", methods=["POST", "GET"])
 @login_required_user
 def pay_credit_account():
     user_details = UserSignup.query.get(current_user.id)
@@ -1121,7 +1121,8 @@ def pay_credit_account():
                 return redirect(url_for("user-dash"))
             except:
                 flash("oops, There was an error updating your account balance...", category='error')
-            
+    else:
+        return "Error somwhere, not sure"
 
 
 
