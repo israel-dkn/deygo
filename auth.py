@@ -1082,8 +1082,11 @@ def credit_account(id, amount):
 
         response_paystack = requests.request("POST", url_paystack, json=payload_paystack, headers=headers_paystack)
         print(response_paystack.text)
-       
-    return redirect(url_for("pay_credit_account"))
+        response_pay_verify_json = response_paystack.json()
+        
+        response_pay_verify_res = response_pay_verify_json["data"]["access_code"]
+        
+    return redirect(f"https://checkout.paystack.com/{response_pay_verify_res}")
 
 
 
@@ -1108,6 +1111,7 @@ def pay_credit_account():
         response_pay_verify_res = response_pay_verify_json["data"]["gateway_response"]
         print(response_pay_verify.text)
         print(response_pay_verify_res)
+        
         if response_pay_verify_res == "Successful":
             response_pay_verify_amount = response_pay_verify_json["data"]["amount"]
         
@@ -1118,12 +1122,15 @@ def pay_credit_account():
             try:
                 db.session.commit()
                 flash(f"{update_amount} has been added to your balance!")
-                return redirect(url_for("user-dash"))
+                return redirect(url_for("user_dash"))
             except:
                 flash("oops, There was an error updating your account balance...", category='error')
+   
+        else:
+            return "Error in final stages, not sure"
+        
     else:
-        return "Error somwhere, not sure"
-
+        "Error somwhere, not sure"
 
 
 
