@@ -1,0 +1,12 @@
+Credit  Debit  Balance
+0       0       0
+100     0       100
+90      0       190
+0       20      170
+0       50      120
+
+
+
+http://127.0.0.1:5000/user-dash/credit-account?trxref=9790an1tyt
+
+http://127.0.0.1:5000/user-dash/credit-account?trxref=6vb4rbevwt
