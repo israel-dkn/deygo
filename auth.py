@@ -1005,6 +1005,7 @@ def blog():
 #
 #
 #
+#
 
 
 # Done! Completed
@@ -1150,12 +1151,12 @@ def pay_credit_account():
                 response_pay_verify = requests.request("GET", url_verify, headers=headers_paystack)
                 response_pay_verify_json = response_pay_verify.json()
                 
-                response_pay_verify_res = response_pay_verify_json["data"]["gateway_response"]
+                response_pay_verify_res = response_pay_verify_json["data"]["status"]
                 trans_log = response_pay_verify.text
                 print(trans_log)
                 print(response_pay_verify_res)
                 
-                if response_pay_verify_res == "Successful":
+                if response_pay_verify_res == "success":
                     # get the last transaction uuid from the customer
                     result_get = MyWallet.query.filter_by(uuid=user_details.first_uuid).first()
                     
@@ -1421,7 +1422,8 @@ def user_dash():
                 db.session.commit()
                 flash("Order Request Created Successfully!", category='success')
                 return redirect(url_for("user_dash"))
-            except:
+            except Exception as e:
+                print(e)
                 flash("Oops, there was an error placing that request...", category='error')
         
         if credit_form.validate_on_submit():
