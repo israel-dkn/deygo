@@ -1396,10 +1396,11 @@ def user_dash():
                 
                 
                 for riders, distance in nearest_riders:
-                    
+                    if riders is None:
+                        riders = 0
+                        
                     print(riders)
                     
-            
                     print(nearest_riders)
         
                     print(sorted_riders)
@@ -1423,7 +1424,7 @@ def user_dash():
                 flash("Order Request Created Successfully!", category='success')
                 return redirect(url_for("user_dash"))
             except Exception as e:
-                print(e)
+                print(f"the order error was: {e}")
                 flash("Oops, there was an error placing that request...", category='error')
         
         if credit_form.validate_on_submit():
