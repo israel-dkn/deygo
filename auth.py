@@ -13,6 +13,7 @@ from flask_socketio import SocketIO, emit, join_room, leave_room, send
 from flask_migrate import Migrate
 import math
 from functools import wraps
+import uuid
 
 
 
@@ -131,7 +132,31 @@ class PartnerRegister1(db.Model):
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
 
     
+class MyWallet(db.Model):
+    __tablename__ = 'mywallet'
+     
+    id = db.Column(db.Integer, primary_key=True)
+    my_balance = db.Column(db.Integer, nullable=False)# update user balance from here after success
+    credit_amount = db.Column(db.Integer, default=0) #get from the trans_amount
+    debit_amount = db.Column(db.Integer, default=0)  #get from the trans_amount
+    trans_reference = db.Column(db.String, nullable=False)
+    trans_id = db.Column(db.Integer, nullable=False)
+    trans_amount = db.Column(db.Integer, nullable=False) # Add the trans amount to either the credit or debit column
+    trans_fees = db.Column(db.Integer, nullable=False)
+    trans_message = db.Column(db.String)
+    trans_status = db.Column(db.String)
+    trans_channel = db.Column(db.String) # debit card, ussd etc.
+    trans_signature = db.Column(db.String, nullable=False)
+    trans_customercode = db.Column(db.String)
+    whole_trans_log = db.Column(db.String)
+    date_created = db.Column(db.DateTime, default=datetime.now)
+    payout_amount = db.Column(db.Integer) # for drivers only
+    uuid = db.Column(db.String)
+    user_id = db.Column(db.Integer, db.ForeignKey('usersignup.id'))
+    driver_id = db.Column(db.Integer, db.ForeignKey('partnersignup.id'))
     
+
+
 
 class Orders(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -184,7 +209,7 @@ class PartnerSignup(db.Model, UserMixin):
     delivery_status = db.Column(db.String(20), default='null')
     date_edited = db.Column(db.DateTime)
     driver = db.relationship('Orders', backref='partner')
-    
+    driver_wallet = db.relationship('MyWallet', backref='partner_wallet')
     
 
 
@@ -204,7 +229,9 @@ class UserSignup(db.Model, UserMixin):
     user_lat = db.Column(db.Float)
     user_lat = db.Column(db.Float)
     date_edited = db.Column(db.DateTime)
+    first_uuid = db.Column(db.String)
     user = db.relationship('Orders', backref='order')
+    user_wallet = db.relationship('MyWallet', backref='user_wallet')
     
    
     
@@ -326,7 +353,6 @@ class RequestOrderForm(FlaskForm):
     pickup = StringField("Pickup Address", validators=[DataRequired()])
     dropoff = StringField("Delivery Address", validators=[DataRequired()])
     message = StringField("Addidtional message")
-    delivery_mode = RadioField("car", choices=[('value','description')])
     submit = SubmitField("Request Dispatch")
 
 
@@ -336,8 +362,11 @@ class TrackTestForm(FlaskForm):
     
 
 class CreditForm(FlaskForm):
-    amount = StringField("Amount")
+    amount = StringField("Amount", validators=[DataRequired()])
     submit = SubmitField("Credit")
+    
+class CreateWallet(FlaskForm):
+    submit = SubmitField("Create")
 
 
 
@@ -681,6 +710,8 @@ def user_signup():
                                 phone=form.phone.data,
                                 password=form.password.data,
                                 con_password=form.con_password.data)
+            
+            
             db.session.add(form_data)
             db.session.commit()
             flash("You have successfully registered to {}".format(site_name))
@@ -697,7 +728,7 @@ def user_signup():
 def login():
     form = LoginForm()
     form2 = PartnerLoginForm()
-    if request.method == "POST" and form.validate_on_submit():
+    if request.method == "POST" and form.validate:
         user_mail = UserSignup.query.filter_by(email=form.email.data).first()
         user_pass = UserSignup.query.filter_by(password=form.password.data).first()
         if user_mail and user_pass:
@@ -711,7 +742,7 @@ def login():
             form.email.data = '' 
             form.password.data = ''
             
-    if request.method == "POST" and form2.validate_on_submit():
+    if request.method == "POST" and form2.validate:
         partner_username = PartnerSignup.query.filter_by(username=form2.username.data).first()
         partner_mail = PartnerSignup.query.filter_by(email=form2.email.data).first()
         partner_pass = PartnerSignup.query.filter_by(password=form2.password.data).first()
@@ -1090,47 +1121,147 @@ def credit_account(id, amount):
 
 
 
-
 @app.route("/user-dash/credit-account", methods=["POST", "GET"])
 @login_required_user
 def pay_credit_account():
-    user_details = UserSignup.query.get(current_user.id)
-   
     if request.method == "GET" and "trxref" in request.args:
+        user_id = current_user.id
+        user_details = UserSignup.query.get(user_id)
+        
         data_trxref = request.args.get("trxref")
         print(data_trxref)
-        url_verify = f"https://api.paystack.co/transaction/verify/{data_trxref}"
-        headers_paystack = {
-            "Authorization": " Bearer sk_test_528e1a3543582b47f670ae934becaff87fb12dca".strip(),
-            "Content-Type": "application/json"
-        }
-
-        response_pay_verify = requests.request("GET", url_verify, headers=headers_paystack)
-        response_pay_verify_json = response_pay_verify.json()
+        # query to confirm if the ref already exist in the db
+        find_ref = MyWallet.query.filter_by(trans_reference=data_trxref).all()
         
-        response_pay_verify_res = response_pay_verify_json["data"]["gateway_response"]
-        print(response_pay_verify.text)
-        print(response_pay_verify_res)
+        if find_ref:
+            flash("Transaction has already been processed")
+            return redirect(url_for("user_dash"))
         
-        if response_pay_verify_res == "Successful":
-            response_pay_verify_amount = response_pay_verify_json["data"]["amount"]
-        
-            update_amount = int(str(response_pay_verify_amount)[:-2])
-            
-            user_details.user_account_balance = update_amount
-            
-            try:
-                db.session.commit()
-                flash(f"{update_amount} has been added to your balance!")
-                return redirect(url_for("user_dash"))
-            except:
-                flash("oops, There was an error updating your account balance...", category='error')
-   
         else:
-            return "Error in final stages, not sure"
+            try:
+                generated_uuid = uuid.uuid4()
+                url_verify = f"https://api.paystack.co/transaction/verify/{data_trxref}"
+                
+                headers_paystack = {
+                    "Authorization": " Bearer sk_test_528e1a3543582b47f670ae934becaff87fb12dca".strip(),
+                    "Content-Type": "application/json"
+                }
+
+                response_pay_verify = requests.request("GET", url_verify, headers=headers_paystack)
+                response_pay_verify_json = response_pay_verify.json()
+                
+                response_pay_verify_res = response_pay_verify_json["data"]["gateway_response"]
+                trans_log = response_pay_verify.text
+                print(trans_log)
+                print(response_pay_verify_res)
+                
+                if response_pay_verify_res == "Successful":
+                    # get the last transaction uuid from the customer
+                    result_get = MyWallet.query.filter_by(uuid=user_details.first_uuid).first()
+                    
+                    result_id = result_get.id
+                    
+                    # query MyWallet db with the last transaction id gotten from result_id
+                    result = MyWallet.query.get(result_id)
+                    
+                    response_pay_verify_amount = response_pay_verify_json["data"]["amount"]
+                    
+                    trans_id_api = response_pay_verify_json["data"]["id"]
+                    
+                    trans_fees_api = response_pay_verify_json["data"]["fees"]
+                    
+                    trans_signature_api = response_pay_verify_json["data"]["authorization"]["signature"]
+                
+                    trans_amount = int(str(response_pay_verify_amount)[:-2])
+                    
+                    prev_bal = result.my_balance
+                    
+                    print(f"your pprevious bal was {prev_bal}")
+                    
+                    new_bal = int(trans_amount) + int(prev_bal)
+                    try:
+                        new_trans = MyWallet(user_id=user_id,
+                                            my_balance=new_bal,
+                                            credit_amount=trans_amount,
+                                            uuid=str(generated_uuid),
+                                            trans_reference=data_trxref,
+                                            trans_amount=trans_amount,
+                                            whole_trans_log=trans_log,
+                                            trans_id=trans_id_api,
+                                            trans_fees=trans_fees_api,
+                                            trans_signature=trans_signature_api)
+                        
+                        cur_bal = user_details.user_account_balance
+                        
+                        user_details.user_account_balance = new_bal
+                        user_details.first_uuid = str(generated_uuid)
+                        db.session.commit()
+                    
+                        db.session.add(new_trans)
+                        db.session.commit()
+                        
+                        flash(f"{trans_amount} has been added to your balance!")
+                        return redirect(url_for("user_dash"))
+                    except Exception as e:
+                        print(e)
+                        flash("oops, There was an error updating your account balance...", category='error')
         
+                else:
+                    flash("Transaction was not successful...", category="error")
+                    return redirect(url_for("user_dash"))
+                
+            except Exception as e:
+                print(e)
+                flash("The transaction failed...please contact our support team...", category="error")
+                return redirect(url_for("user_dash"))
+            
     else:
-        "Error somwhere, not sure"
+        flash("Error somwhere, not sure", category="error")
+        return redirect(url_for("user_dash"))
+
+
+
+# @app.route("/user-dash/credit-account", methods=["POST", "GET"])
+# @login_required_user
+# def pay_credit_account():
+#     user_details = UserSignup.query.get(current_user.id)
+   
+#     if request.method == "GET" and "trxref" in request.args:
+#         data_trxref = request.args.get("trxref")
+#         print(data_trxref)
+#         url_verify = f"https://api.paystack.co/transaction/verify/{data_trxref}"
+#         headers_paystack = {
+#             "Authorization": " Bearer sk_test_528e1a3543582b47f670ae934becaff87fb12dca".strip(),
+#             "Content-Type": "application/json"
+#         }
+
+#         response_pay_verify = requests.request("GET", url_verify, headers=headers_paystack)
+#         response_pay_verify_json = response_pay_verify.json()
+        
+#         response_pay_verify_res = response_pay_verify_json["data"]["gateway_response"]
+#         print(response_pay_verify.text)
+#         print(response_pay_verify_res)
+        
+#         if response_pay_verify_res == "Successful":
+            
+#             response_pay_verify_amount = response_pay_verify_json["data"]["amount"]
+        
+#             update_amount = int(str(response_pay_verify_amount)[:-2])
+            
+#             user_details.user_account_balance += update_amount
+            
+#             try:
+#                 db.session.commit()
+#                 flash(f"{update_amount} has been added to your balance!")
+#                 return redirect(url_for("user_dash"))
+#             except:
+#                 flash("oops, There was an error updating your account balance...", category='error')
+   
+#         else:
+#             return "Error in final stages, not sure"
+        
+#     else:
+#         "Error somwhere, not sure"
 
 
 
@@ -1141,164 +1272,201 @@ def user_dash():
     
     # query db to get particular user ride requests
     user_id = current_user.id
-    order_qry = Orders.query.filter(Orders.order.has(id=user_id)).order_by(Orders.id.desc()).all()
-    user_details = UserSignup.query.get(user_id)
-   
-    #values in naira
-    basecharge = 300
-    cost_per_min = 30
-    cost_per_km = 70 
+    if user_id == None or 0:
+        return redirect(url_for("login"))
+    else:
+        order_qry = Orders.query.filter(Orders.order.has(id=user_id)).order_by(Orders.id.desc()).all()
+        user_details = UserSignup.query.get(user_id)
     
-    #values in naira
-    van_basecharge = 600
-    
-    #values in naira
-    car_basecharge = 400
-    
-    timestamp = datetime.now()
-
-    form = RequestOrderForm(request.form)
-    credit_form = CreditForm(request.form)
-    
-    form.validate
-    if request.method == "POST" and form.validate_on_submit():
+        #values in naira
+        basecharge = 300
+        cost_per_min = 30
+        cost_per_km = 70 
         
-        address = form.pickup.data
-        address2 = form.dropoff.data
+        #values in naira
+        van_basecharge = 600
         
-        delivery_mode = request.form.get("engine")
-
-        #get location and convert input to lon,lat
-        location = requests.request("GET", f"https://api.tomtom.com/search/2/search/{address}%20abuja.json?key=JoBjMY24siY0bENUY5g52SLXouAaf4FX")
-        location2 = requests.request("GET", f"https://api.tomtom.com/search/2/search/{address2}%20abuja.json?key=JoBjMY24siY0bENUY5g52SLXouAaf4FX")
-        response = location.json()
-        response2 = location2.json()
-        #query the json and get the lat and lon
-        lat = response['results'][0]['position']['lat']
-        lon = response['results'][0]['position']['lon']
-        
-        lat2 = response2['results'][0]['position']['lat']
-        lon2 = response2['results'][0]['position']['lon']
-        
-        
-        # TEST TOM TOM API
-        url = "https://api.tomtom.com/routing/matrix/2"
-
-        querystring = {"key":"JoBjMY24siY0bENUY5g52SLXouAaf4FX"}
-
-        payload = {
-            "origins": [{"point": {
-                        "latitude": lat,
-                        "longitude": lon
-                    }}],
-            "destinations": [{"point": {
-                        "latitude": lat2,
-                        "longitude": lon2
-                    }}],
-            "options": {
-                "departAt": "now",
-                "routeType": "fastest",
-                "traffic": "live",
-                "travelMode": "car",
-                "vehicleMaxSpeed": 80,
-                "vehicleWeight": 0,
-                "vehicleAxleWeight": 0,
-                "vehicleLength": 0,
-                "vehicleWidth": 0,
-                "vehicleHeight": 0,
-                "vehicleCommercial": False
-            }
-        }
-        headers = {"Content-Type": "application/json"}
-
-        request2 = requests.request("POST", url, json=payload, headers=headers, params=querystring)
-        response2 = request2.json()
-        
-        #query the json and get the travel distance and time
-        testdistance_api = response2['data'][0]['routeSummary']['lengthInMeters']
-        testtime_api = response2['data'][0]['routeSummary']['travelTimeInSeconds']
-        
-        #format the values and round to whole number
-        testdistance = (round(testdistance_api /1000))
-        testtime = (round(testtime_api /60))
-        
-        #calculate the cost formula
-        if delivery_mode == "bike":
-            testcost = int(testdistance *cost_per_km) + int(testtime *cost_per_min) + int(basecharge)
-        elif delivery_mode == "car":
-            testcost = int(testdistance *cost_per_km) + int(testtime *cost_per_min) + int(car_basecharge)
-        elif delivery_mode == "van":
-            testcost = int(testdistance *cost_per_km) + int(testtime *cost_per_min) + int(van_basecharge)
-        else:
-            flash("selecect an option please", category="error")
-        
+        #values in naira
+        car_basecharge = 400
         
         timestamp = datetime.now()
+
+        form = RequestOrderForm(request.form)
+        credit_form = CreditForm(request.form)
+        create_wallet_form = CreateWallet(request.form)
         
         
-        lat_lon = {}
-        riders_qry = PartnerSignup.query.filter_by(driver_status="available").all()
-        for lat_lons in riders_qry:
-            lat_lon[lat_lons.id] = [ float(lat_lons.driver_lat), float(lat_lons.driver_lon)]
+        if form.validate_on_submit():
+            
+            address = form.pickup.data
+            address2 = form.dropoff.data
+            
+            delivery_mode = request.form.get("engine")
+
+            #get location and convert input to lon,lat
+            location = requests.request("GET", f"https://api.tomtom.com/search/2/search/{address}%20abuja.json?key=JoBjMY24siY0bENUY5g52SLXouAaf4FX")
+            location2 = requests.request("GET", f"https://api.tomtom.com/search/2/search/{address2}%20abuja.json?key=JoBjMY24siY0bENUY5g52SLXouAaf4FX")
+            response = location.json()
+            response2 = location2.json()
+            #query the json and get the lat and lon
+            lat = response['results'][0]['position']['lat']
+            lon = response['results'][0]['position']['lon']
+            
+            lat2 = response2['results'][0]['position']['lat']
+            lon2 = response2['results'][0]['position']['lon']
+            
+            
+            # TEST TOM TOM API
+            url = "https://api.tomtom.com/routing/matrix/2"
+
+            querystring = {"key":"JoBjMY24siY0bENUY5g52SLXouAaf4FX"}
+
+            payload = {
+                "origins": [{"point": {
+                            "latitude": lat,
+                            "longitude": lon
+                        }}],
+                "destinations": [{"point": {
+                            "latitude": lat2,
+                            "longitude": lon2
+                        }}],
+                "options": {
+                    "departAt": "now",
+                    "routeType": "fastest",
+                    "traffic": "live",
+                    "travelMode": "car",
+                    "vehicleMaxSpeed": 80,
+                    "vehicleWeight": 0,
+                    "vehicleAxleWeight": 0,
+                    "vehicleLength": 0,
+                    "vehicleWidth": 0,
+                    "vehicleHeight": 0,
+                    "vehicleCommercial": False
+                }
+            }
+            
+            headers = {"Content-Type": "application/json"}
+
+            request2 = requests.request("POST", url, json=payload, headers=headers, params=querystring)
+            response2 = request2.json()
+            
+            #query the json and get the travel distance and time
+            testdistance_api = response2['data'][0]['routeSummary']['lengthInMeters']
+            testtime_api = response2['data'][0]['routeSummary']['travelTimeInSeconds']
+            
+            #format the values and round to whole number
+            testdistance = (round(testdistance_api /1000))
+            testtime = (round(testtime_api /60))
+            
+            #calculate the cost formula
+            if delivery_mode == "bike":
+                testcost = int(testdistance *cost_per_km) + int(testtime *cost_per_min) + int(basecharge)
+            elif delivery_mode == "car":
+                testcost = int(testdistance *cost_per_km) + int(testtime *cost_per_min) + int(car_basecharge)
+            elif delivery_mode == "van":
+                testcost = int(testdistance *cost_per_km) + int(testtime *cost_per_min) + int(van_basecharge)
+            else:
+                flash("selecect an option please", category="error")
+            
+            
+            timestamp = datetime.now()
+            
+            lat_lon = {}
+            riders_qry = PartnerSignup.query.filter_by(driver_status="available").all()
+            for lat_lons in riders_qry:
+                lat_lon[lat_lons.id] = [ lat_lons.driver_lat, lat_lons.driver_lon ]
+
+            print(lat_lon)
+                            
+            pickup_coord = [lat, lon]
+            # nearest_rider = None
+            # min_distance = float('inf')
+            distances = {}
+            for driver_id, coords in lat_lon.items():
+                dri_lat = coords[0]
+                dri_lon = coords[1]
+                distance =  math.sqrt((float(pickup_coord[0]) - dri_lat) ** 2 + (float(pickup_coord[1]) - dri_lon) ** 2) 
+                distances[driver_id] = distance
+                
+                sorted_riders = sorted(lat_lon.items(), key=lambda x: x[1])
+                
+                # Select the three nearest points
+                nearest_riders = sorted_riders[:5]
+                
+                
+                for riders, distance in nearest_riders:
                     
-        pickup_coord = [float(lat), float(lon)]
-        # nearest_rider = None
-        # min_distance = float('inf')
-        distances = {}
-        for driver_id, coords in lat_lon.items():
-            dri_lat = coords[0]
-            dri_lon = coords[1]
-            distance =  math.sqrt((pickup_coord[0] - dri_lat) ** 2 + (pickup_coord[1] - dri_lon) ** 2) 
-            distances[driver_id] = distance
+                    print(riders)
+                    
             
-            sorted_riders = sorted(lat_lon.items(), key=lambda x: x[1])
-            
-            # Select the three nearest points
-            nearest_riders = sorted_riders[:5]
-            
-            
-            for riders, distance in nearest_riders:
-                
-                print(riders)
-                
+                    print(nearest_riders)
         
-        print(nearest_riders)
-    
-        print(sorted_riders)
+                    print(sorted_riders)
+            try:
+                # Add new order to db
+                order = Orders(placed_by_id=user_id,
+                            pickup=address,
+                            dropoff=address2,
+                            user_id=user_id,
+                            delivery_time=testtime,
+                            delivery_distance=testdistance,
+                            delivery_cost=testcost,
+                            pickup_lat=lat,
+                            pickup_lon=lon,
+                            dropoff_lat=lat2,
+                            dropoff_lon=lon2,
+                            available_riders=riders,
+                            delivery_mode=delivery_mode)
+                db.session.add(order)
+                db.session.commit()
+                flash("Order Request Created Successfully!", category='success')
+                return redirect(url_for("user_dash"))
+            except:
+                flash("Oops, there was an error placing that request...", category='error')
+        
+        if credit_form.validate_on_submit():
+            return redirect(url_for("credit_account",
+                                    id=current_user.id,
+                                    amount=credit_form.amount.data))
+
+            
+        return render_template("user-dash.html",
+                            order_qry=order_qry,
+                            form=form,
+                            timestamp=timestamp,
+                            condition=condition,
+                            credit_form=credit_form)
+
+
+@app.route('/user-dash/wallet/create/<int:id>')
+@login_required_user
+def create_wallet_func(id):
+        user_details = UserSignup.query.get(id)
+        ran_uuid = uuid.uuid4()
+        print(ran_uuid)
+        default = 0
         try:
-            # Add new order to db
-            order = Orders(placed_by_id=user_id,
-                        pickup=address,
-                        dropoff=address2,
-                        user_id=user_id,
-                        delivery_time=testtime,
-                        delivery_distance=testdistance,
-                        delivery_cost=testcost,
-                        pickup_lat=lat,
-                        pickup_lon=lon,
-                        dropoff_lat=lat2,
-                        dropoff_lon=lon2,
-                        available_riders=riders,
-                        delivery_mode=delivery_mode)
-            db.session.add(order)
+            create_wallet = MyWallet(my_balance=default,
+                                        uuid=str(ran_uuid),
+                                        user_id=id,
+                                        trans_reference=default,
+                                        trans_id=default,
+                                        trans_amount=default,
+                                        trans_fees=default,
+                                        trans_signature=default)
+            db.session.add(create_wallet)
             db.session.commit()
-            flash("Order Request Created Successfully!", category='success')
-        except:
-            flash("Oops, there was an error placing that request...", category='error')
-    
-    if request.method == "POST" and credit_form.validate():
-        return redirect(url_for("credit_account",
-                                id=current_user.id,
-                                amount=credit_form.amount.data))
-
-        
-
-    return render_template("user-dash.html",
-                           order_qry=order_qry,
-                           form=form,
-                           timestamp=timestamp,
-                           condition=condition,
-                           credit_form=credit_form)
+            
+            user_details.user_account_balance = 0
+            user_details.first_uuid = str(ran_uuid)
+            db.session.commit()
+            
+            flash("Wallet Activated!", category='success')
+            return redirect(url_for("user_dash"))
+        except Exception as e:
+            print(e)
+            flash("oops, there was an error creating your wallet...", category='error')
+            return redirect(url_for("user_dash"))    
 
 
 # @app.route('/order/<int:order_id>/accept')
