@@ -59,8 +59,8 @@ def login_required_partner(view_func):
             flash("Login to access this page", category="error")
             return redirect(url_for("login"))
         if session.get('type') != 'partner':
-            flash(f"Hello {current_user.first_name}, You must be a partner to access this page!", category="error")
-            return redirect(url_for("user_dash"))
+            flash("Hello, You must be a partner to access this page!", category="error")
+            return redirect(url_for("login"))
         return view_func(*args, **kwargs)
     return wrapper
 
@@ -68,12 +68,12 @@ def login_required_partner(view_func):
 def login_required_user(view_func):
     @wraps(view_func)
     def wrapper(*args, **kwargs):
-        if session.get('type') == None:
+        if session.get('type') is None:
             flash("Login to access this page", category="error")
             return redirect(url_for("login"))
         if session.get('type') != 'user':
-            flash(f"Hello {current_user.username}, You do not have permission to access this URL!", category="error")
-            return redirect(url_for("partner_dashboard"))
+            flash("Hello, You do not have permission to access this URL!", category="error")
+            return redirect(url_for("login"))
         return view_func(*args, **kwargs)
     return wrapper
 
@@ -272,6 +272,11 @@ class Post(db.Model):
     post_content = db.Column(db.String(1000))
     
     
+    
+class SiteVisits(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    new = db.Column(db.Integer)
+    time = db.Column(db.DateTime, default=datetime.now)
 
     
     
@@ -381,6 +386,26 @@ class CreateWallet(FlaskForm):
 #
  
 # <---- All test routes will go here ---->
+
+
+@app.before_request
+def set_user_type():
+    if 'type' not in session:
+        session['type'] = 'new_user'
+        newuser = SiteVisits(new=1)
+        db.session.add(newuser)
+        db.session.commit
+       
+        
+    if session["type"] == "user":
+        pass
+    
+    if session["type"] == "partner":
+        pass
+
+    
+        
+        
 
 @app.route("/rider/go-offline")
 @login_required_partner
@@ -823,57 +848,59 @@ def dashboard_rides(page):
 # @app.route("/company/<int:id>", methods=["POST", "GET"])
 @login_required_partner
 def partner_dashboard():
-    # redirect to home page if the user current session is "user"
-    partner_id = current_user.id
+    if current_user.is_authenticated:
+        # redirect to home page if the user current session is "user"
+        partner_id = current_user.id
         
-       
-    # def a func to say, if rider current lat,lon == nearest_rider_index
-    # automatically assign order to the particular rider
-    ses = session['type']
-    orders = Orders.query.filter_by(status='pending').order_by(Orders.id.desc())
-    orders_count = Orders.query.filter_by(driver_id=partner_id, status='completed').count()
-    orders_sum = db.session.query(db.func.sum(Orders.delivery_cost)).filter_by(driver_id=current_user.id, status='completed').scalar()
-    order_qry = Orders.query.filter(Orders.partner.has(id=partner_id)).order_by(Orders.id.desc()).all()
-    # last_order =  Orders.query.filter_by(driver_id=partner_id, status='pending').all()
-    last_order = Orders.query.filter_by(driver_id=partner_id, status='accepted').order_by(Orders.id.desc()).first()
-    
-    last_order_count = Orders.query.filter_by(driver_id=partner_id, status='accepted').order_by(Orders.id.desc()).count()
-    
-    
-    timestamp = datetime.now()
-    
-    # orders_sum = format_number_with_commas(orders_sum_req)
+        # def a func to say, if rider current lat,lon == nearest_rider_index
+        # automatically assign order to the particular rider
+        ses = session['type']
+        orders = Orders.query.filter_by(status='pending').order_by(Orders.id.desc())
+        orders_count = Orders.query.filter_by(driver_id=partner_id, status='completed').count()
+        orders_sum = db.session.query(db.func.sum(Orders.delivery_cost)).filter_by(driver_id=current_user.id, status='completed').scalar()
+        order_qry = Orders.query.filter(Orders.partner.has(id=partner_id)).order_by(Orders.id.desc()).all()
+        # last_order =  Orders.query.filter_by(driver_id=partner_id, status='pending').all()
+        last_order = Orders.query.filter_by(driver_id=partner_id, status='accepted').order_by(Orders.id.desc()).first()
+        
+        last_order_count = Orders.query.filter_by(driver_id=partner_id, status='accepted').order_by(Orders.id.desc()).count()
+        
+        
+        timestamp = datetime.now()
+        
+        # orders_sum = format_number_with_commas(orders_sum_req)
 
-    # lat_lon = {}
-    # records = PartnerSignup.query.all()
-    # for lat_lons in records:
-    #     lat_lon[lat_lons.id] = [ float(lat_lons.driver_lat), float(lat_lons.driver_lon)]
-            
-    # target_point = [9.052185, 7.485223]
-    # nearest_point = None
-    # min_distance = float('inf')
+        # lat_lon = {}
+        # records = PartnerSignup.query.all()
+        # for lat_lons in records:
+        #     lat_lon[lat_lons.id] = [ float(lat_lons.driver_lat), float(lat_lons.driver_lon)]
+                
+        # target_point = [9.052185, 7.485223]
+        # nearest_point = None
+        # min_distance = float('inf')
 
-    # for point_name, coords in lat_lon.items():
-    #     lat = coords[0]
-    #     lon = coords[1]
-    #     distance = ((lat - target_point[0]) ** 2 + (lon - target_point[1]) ** 2) ** 0.5
-    #     if distance < min_distance:
-    #         min_distance = distance
-    #         nearest_point = point_name
+        # for point_name, coords in lat_lon.items():
+        #     lat = coords[0]
+        #     lon = coords[1]
+        #     distance = ((lat - target_point[0]) ** 2 + (lon - target_point[1]) ** 2) ** 0.5
+        #     if distance < min_distance:
+        #         min_distance = distance
+        #         nearest_point = point_name
 
-    # nearest_coordinates = lat_lon[nearest_point]
-    
-    return render_template('company.html', 
-                        orders=orders,
-                        orders_count=orders_count,
-                        ses=ses,
-                        orders_sum=orders_sum, 
-                        timestamp=timestamp,
-                        order_qry=order_qry,
-                        last_order=last_order,
-                        last_order_count=last_order_count) 
-    
-    
+        # nearest_coordinates = lat_lon[nearest_point]
+        
+        return render_template('company.html', 
+                            orders=orders,
+                            orders_count=orders_count,
+                            ses=ses,
+                            orders_sum=orders_sum, 
+                            timestamp=timestamp,
+                            order_qry=order_qry,
+                            last_order=last_order,
+                            last_order_count=last_order_count) 
+    else:
+        flash("Must register to DEYGO to access this page", category="error")
+        return redirect(url_for("login"))
+        
 
 
 
@@ -1152,67 +1179,74 @@ def pay_credit_account():
                 response_pay_verify_json = response_pay_verify.json()
                 
                 response_pay_verify_res = response_pay_verify_json["data"]["status"]
+                response_pay_verify_mail = response_pay_verify_json["data"]["customer"]["email"]
+                
                 trans_log = response_pay_verify.text
                 print(trans_log)
                 print(response_pay_verify_res)
                 
                 if response_pay_verify_res == "success":
-                    # get the last transaction uuid from the customer
-                    result_get = MyWallet.query.filter_by(uuid=user_details.first_uuid).first()
-                    
-                    result_id = result_get.id
-                    
-                    # query MyWallet db with the last transaction id gotten from result_id
-                    result = MyWallet.query.get(result_id)
-                    
-                    response_pay_verify_amount = response_pay_verify_json["data"]["amount"]
-                    
-                    trans_id_api = response_pay_verify_json["data"]["id"]
-                    
-                    trans_fees_api = response_pay_verify_json["data"]["fees"]
-                    
-                    trans_signature_api = response_pay_verify_json["data"]["authorization"]["signature"]
-                
-                    trans_amount = int(str(response_pay_verify_amount)[:-2])
-                    
-                    prev_bal = result.my_balance
-                    
-                    print(f"your pprevious bal was {prev_bal}")
-                    
-                    new_bal = int(trans_amount) + int(prev_bal)
-                    try:
-                        new_trans = MyWallet(user_id=user_id,
-                                            my_balance=new_bal,
-                                            credit_amount=trans_amount,
-                                            uuid=str(generated_uuid),
-                                            trans_reference=data_trxref,
-                                            trans_amount=trans_amount,
-                                            whole_trans_log=trans_log,
-                                            trans_id=trans_id_api,
-                                            trans_fees=trans_fees_api,
-                                            trans_signature=trans_signature_api)
+                    if response_pay_verify_mail == current_user.email:
+                        # get the last transaction uuid from the customer
+                        result_get = MyWallet.query.filter_by(uuid=user_details.first_uuid).first()
                         
-                        cur_bal = user_details.user_account_balance
+                        result_id = result_get.id
                         
-                        user_details.user_account_balance = new_bal
-                        user_details.first_uuid = str(generated_uuid)
-                        db.session.commit()
+                        # query MyWallet db with the last transaction id gotten from result_id
+                        result = MyWallet.query.get(result_id)
+                        
+                        response_pay_verify_amount = response_pay_verify_json["data"]["amount"]
+                        
+                        trans_id_api = response_pay_verify_json["data"]["id"]
+                        
+                        trans_fees_api = response_pay_verify_json["data"]["fees"]
+                        
+                        trans_signature_api = response_pay_verify_json["data"]["authorization"]["signature"]
                     
-                        db.session.add(new_trans)
-                        db.session.commit()
+                        trans_amount = int(str(response_pay_verify_amount)[:-2])
                         
-                        flash(f"{trans_amount} has been added to your balance!")
+                        prev_bal = result.my_balance
+                        
+                        print(f"your pprevious bal was {prev_bal}")
+                        
+                        new_bal = int(trans_amount) + int(prev_bal)
+                        try:
+                            new_trans = MyWallet(user_id=user_id,
+                                                my_balance=new_bal,
+                                                credit_amount=trans_amount,
+                                                uuid=str(generated_uuid),
+                                                trans_reference=data_trxref,
+                                                trans_amount=trans_amount,
+                                                whole_trans_log=trans_log,
+                                                trans_id=trans_id_api,
+                                                trans_fees=trans_fees_api,
+                                                trans_signature=trans_signature_api)
+                            
+                            cur_bal = user_details.user_account_balance
+                            
+                            user_details.user_account_balance = new_bal
+                            user_details.first_uuid = str(generated_uuid)
+                            db.session.commit()
+                        
+                            db.session.add(new_trans)
+                            db.session.commit()
+                            
+                            flash(f"{trans_amount} has been added to your balance!")
+                            return redirect(url_for("user_dash"))
+                        except Exception as e:
+                            print(f"error gotten from adding customer payment: {e}")
+                            flash("oops, There was an error updating your account balance...", category='error')
+            
+                    else:
+                        flash("Payment attempt is illegal...", category="error")
+                        print(f"{current_user.first_name} {current_user.last_name} attempted an illegal payment verification")
                         return redirect(url_for("user_dash"))
-                    except Exception as e:
-                        print(e)
-                        flash("oops, There was an error updating your account balance...", category='error')
-        
                 else:
-                    flash("Transaction was not successful...", category="error")
-                    return redirect(url_for("user_dash"))
-                
+                        flash("Transaction was not successful...", category="error")
+                        return redirect(url_for("user_dash"))
+                    
             except Exception as e:
-                print(e)
+                print(f"error gotten from paystack api: {e}")
                 flash("The transaction failed...please contact our support team...", category="error")
                 return redirect(url_for("user_dash"))
             
@@ -1272,10 +1306,10 @@ def user_dash():
     condition = True
     
     # query db to get particular user ride requests
-    user_id = current_user.id
-    if user_id == None or 0:
-        return redirect(url_for("login"))
-    else:
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    
+    
         order_qry = Orders.query.filter(Orders.order.has(id=user_id)).order_by(Orders.id.desc()).all()
         user_details = UserSignup.query.get(user_id)
     
@@ -1377,11 +1411,17 @@ def user_dash():
             for lat_lons in riders_qry:
                 lat_lon[lat_lons.id] = [ lat_lons.driver_lat, lat_lons.driver_lon ]
 
+            if lat_lon is None:
+                lat_lon = {float(0.0)}
+                
             print(lat_lon)
                             
             pickup_coord = [lat, lon]
             # nearest_rider = None
             # min_distance = float('inf')
+            
+            riders = 0
+                
             distances = {}
             for driver_id, coords in lat_lon.items():
                 dri_lat = coords[0]
@@ -1395,15 +1435,17 @@ def user_dash():
                 nearest_riders = sorted_riders[:5]
                 
                 
+                
                 for riders, distance in nearest_riders:
-                    if riders is None:
-                        riders = 0
-                        
+                
                     print(riders)
-                    
-                    print(nearest_riders)
         
-                    print(sorted_riders)
+            print(nearest_riders)
+
+            print(sorted_riders)
+                
+                
+                    
             try:
                 # Add new order to db
                 order = Orders(placed_by_id=user_id,
@@ -1439,37 +1481,47 @@ def user_dash():
                             timestamp=timestamp,
                             condition=condition,
                             credit_form=credit_form)
+    else:
+        flash("Must register to DEYGO to access this page", category="error")
+        return redirect(url_for("login"))
 
 
 @app.route('/user-dash/wallet/create/<int:id>')
 @login_required_user
 def create_wallet_func(id):
         user_details = UserSignup.query.get(id)
-        ran_uuid = uuid.uuid4()
-        print(ran_uuid)
-        default = 0
-        try:
-            create_wallet = MyWallet(my_balance=default,
-                                        uuid=str(ran_uuid),
-                                        user_id=id,
-                                        trans_reference=default,
-                                        trans_id=default,
-                                        trans_amount=default,
-                                        trans_fees=default,
-                                        trans_signature=default)
-            db.session.add(create_wallet)
-            db.session.commit()
+        if user_details.first_uuid == None:
             
-            user_details.user_account_balance = 0
-            user_details.first_uuid = str(ran_uuid)
-            db.session.commit()
-            
-            flash("Wallet Activated!", category='success')
+            ran_uuid = uuid.uuid4()
+            print(ran_uuid)
+            default = 0
+            try:
+                create_wallet = MyWallet(my_balance=default,
+                                            uuid=str(ran_uuid),
+                                            user_id=id,
+                                            trans_reference=default,
+                                            trans_id=default,
+                                            trans_amount=default,
+                                            trans_fees=default,
+                                            trans_signature=default)
+                db.session.add(create_wallet)
+                db.session.commit()
+                
+                user_details.user_account_balance = 0
+                user_details.first_uuid = str(ran_uuid)
+                db.session.commit()
+                
+                flash("Wallet Activated!", category='success')
+                return redirect(url_for("user_dash"))
+            except Exception as e:
+                print(e)
+                flash("oops, there was an error creating your wallet...", category='error')
+                return redirect(url_for("user_dash")) 
+               
+        else:
+            flash("Your wallet has already been activated", category="warning")
             return redirect(url_for("user_dash"))
-        except Exception as e:
-            print(e)
-            flash("oops, there was an error creating your wallet...", category='error')
-            return redirect(url_for("user_dash"))    
+        
 
 
 # @app.route('/order/<int:order_id>/accept')
