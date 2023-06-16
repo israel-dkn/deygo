@@ -217,18 +217,20 @@ Navbar End -->
             <p><h6><i class="far fa-dot-circle text-primary mr-3"></i><small>Delivery Time:</small><b> {{orders.delivery_time}} mins</h6>
                 <p><h6><i class="far fa-dot-circle text-primary mr-3"></i><small>Delivery Distance:</small><b> {{orders.delivery_distance}} km </h6>
                   
-        
-                
                     <hr style="width:95%;text-align:left;margin-left:0">
                     <div class="d-flex justify-content-center">  
                         <div class="ml-4"><small>ETA:</small><b> {{testtime}} mins</b></div>
                         
                     </div>
             <br>
-            <div class="d-flex justify-content-center"> 
-            <a href="{{url_for("order_complete", id=orders.id)}}" class="btn btn-outline-primary btn-lg w-50 rounded text-left"><span class="text-left"><small>Price: </small><b> {{orders.delivery_cost|int|format_number}}</b></span><small class="ml-4">| Order Picked Up</small></a>
-                <a href="#" class="btn btn-primary ml-2 btn-lg w-50 rounded"><small>Call: </small>{{orders.order.phone}}</a>
-            </div>
+            <div class="d-flex justify-content-center">
+                {% if orders.status == "completed" %} 
+                <a href="{{url_for("partner_dashboard")}}" class="btn btn-success btn-lg w-100  text-white">Order Completed! 📦 | Back to dashboard</span></a>
+                {% else %}
+            <a href="{{url_for("order_complete", id=orders.id)}}" class="btn btn-outline-primary btn-lg w-50 rounded text-left"><span class="text-left"><small>Price: </small><b> {{orders.delivery_cost|int|format_number}}</b></span><small class="ml-4">| Complete this request</small></a>
+                <a href="{{url_for("arrived", id=orders.id)}}" class="btn btn-primary ml-2 btn-lg w-50 rounded"><small>Arrived</a>
+                    {% endif %}
+                </div>
             </div>
         </div>
         </div>

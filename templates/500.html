@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    {% block title%}<title>Compnay Profile</title>{% endblock %}
+    {% block title%}<title>500 Error</title>{% endblock %}
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <meta content="Free HTML Templates" name="keywords">
     <meta content="Free HTML Templates" name="description">
@@ -32,20 +32,25 @@
 </head>
    
 <body>
-    {% with messages = get_flashed_messages() %}
-    {% if messages %}
-      <ul class=flashes>
-      {% for message in messages %}
-      <div class="alert alert-warning alert-dismissible fade show" role="alert">
-          {{ message }}
-          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-      {% endfor %}
-      </ul>
-    {% endif %}
-  {% endwith %} 
+    <div class="sticky-top">
+        {% with messages = get_flashed_messages(with_categories=true) %} {% if
+            messages %} {% for category, message in messages %} {% if category ==
+            'error' %}
+            <div class="alert alert-danger alter-dismissable fade show" role="alert">
+              {{ message }}
+              <button type="button" class="close" data-dismiss="alert">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            {% else %}
+            <div class="alert alert-success alter-dismissable fade show" role="alert">
+              {{ message }}
+              <button type="button" class="close" data-dismiss="alert">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            {% endif %} {% endfor %} {% endif %} {% endwith %}
+    </div>
 
 
 <main>
@@ -55,13 +60,13 @@
                 <div class="col-12 col-lg-5 order-2 order-lg-1 text-center text-lg-left">
                     <h1 class="mt-5">Something has gone <span class="text-primary">seriously</span> wrong</h1>
                     <p class="lead my-4">It's always time for a coffee break. We should be back by the time you finish your coffee.</p>
-                    <a href="/dashboard.html" class="btn btn-gray-800 d-inline-flex align-items-center justify-content-center mb-4">
+                    <a href="/user-dash" class="btn btn-gray-800 d-inline-flex align-items-center justify-content-center mb-4">
                         <svg class="icon icon-xs me-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M7.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l2.293 2.293a1 1 0 010 1.414z" clip-rule="evenodd"></path></svg>
                         Back to homepage
                     </a>
                 </div>
                 <div class="col-12 col-lg-7 order-1 order-lg-2 text-center d-flex align-items-center justify-content-center">
-                    <img class="img-fluid w-75" src="{{ config.ASSETS_ROOT }}/img/illustrations/500.svg" alt="500 Server Error">
+                    <img class="img-fluid w-75" src="{{url_for('static', filename='500.svg') }}" alt="500 Server Error">
                 </div>
             </div>
         </div>

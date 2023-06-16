@@ -146,7 +146,7 @@ class MyWallet(db.Model):
     trans_message = db.Column(db.String)
     trans_status = db.Column(db.String)
     trans_channel = db.Column(db.String) # debit card, ussd etc.
-    trans_signature = db.Column(db.String, nullable=False)
+    trans_signature = db.Column(db.String, default="no signature from api", nullable=False)
     trans_customercode = db.Column(db.String)
     whole_trans_log = db.Column(db.String)
     date_created = db.Column(db.DateTime, default=datetime.now)
@@ -160,6 +160,7 @@ class MyWallet(db.Model):
 
 class Orders(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    payment_status = db.Column(db.String) #paid or unpaid
     pickup = db.Column(db.String) 
     dropoff = db.Column(db.String)
     delivery_time = db.Column(db.String) 
@@ -174,7 +175,7 @@ class Orders(db.Model):
     placed_by_id = db.Column(db.String) #placed_by=current_user.id
     time_created = db.Column(db.DateTime, default=datetime.now)
     track_id = db.Column(db.String, default=ran_id)
-    status = db.Column(db.String(20), default='pending') 
+    status = db.Column(db.String(20), default='pending') #pending-payment
     available_riders = db.Column(db.Integer)
     driver_id = db.Column(db.Integer, db.ForeignKey('partnersignup.id'))
     user_id = db.Column(db.Integer, db.ForeignKey('usersignup.id'))
@@ -395,6 +396,8 @@ def set_user_type():
         newuser = SiteVisits(new=1)
         db.session.add(newuser)
         db.session.commit
+        count = SiteVisits.query.order_by(SiteVisits.id.desc()).count()
+        print(f"Total site visits is: {count}")
        
         
     if session["type"] == "user":
@@ -446,6 +449,24 @@ def go_online():
     return redirect(url_for("partner_dashboard"))
 
 
+@app.route("/rider/order/arrived/<int:id>")
+@login_required_partner
+def arrived(id):
+    orders = Orders.query.get(id)
+    
+    orders.status = "pending-payment"
+    get_dri = PartnerSignup.query.get(orders.driver_id)
+    get_dri.driver_status = 'available'
+    
+    try:
+        db.session.commit()
+    except:
+        flash("oops, There was an error updating your status", category='error')
+    
+    flash("The client has been notified to make payment, please hold on", category='success')
+    return redirect(url_for("order_details", id=id))
+    
+
 
 @app.route("/rider/order/complete/<int:id>")
 @login_required_partner
@@ -455,18 +476,25 @@ def order_complete(id):
     partner_stat = PartnerSignup.query.get(partner_id)
     
     total = format_number_with_commas(orders.delivery_cost)
-    
-    
-    partner_stat.driver_status = 'available'
-    orders.status = "completed"
-    
-    try:
-        db.session.commit()
-    except:
-        flash("oops, There was an error updating your status", category='error')
-    
-    flash("Order Completed! N{} has been added to your balance".format(total), category='success')
-    return redirect(url_for("partner_dashboard"))
+    if orders.status != "completed":
+        if orders.status == "pending-payment":
+            flash("You cannot complete this ride at the moment", category='warning')
+            return redirect(url_for("order_details", id=id))
+        
+        if orders.status == "accepted":
+            partner_stat.driver_status = 'available'
+            orders.status = "completed"
+            
+            try:
+                db.session.commit()
+                flash("Order Completed! N{} has been added to your balance".format(total), category='success')
+                return redirect(url_for("partner_dashboard"))
+            except:
+                flash("oops, There was an error updating your status", category='error')
+            
+    elif orders.status == "completed":
+        flash("Order Completed! N{} has been added to your balance".format(total), category='success')
+        return redirect(url_for("partner_dashboard"))
 
 
 @app.route("/rider/order/details/<int:id>")
@@ -1149,6 +1177,58 @@ def credit_account(id, amount):
 
 
 
+@app.route("/pay/order/<int:id>", methods=["POST", "GET"])
+@login_required_user
+def order_payment(id):
+    order = Orders.query.get(id)
+    user_id = current_user.id
+    user_qry = UserSignup.query.get(user_id)
+    # query MyWallet db with the last uuid saved to the customer to get their last balance
+    result_get = MyWallet.query.filter_by(uuid=user_qry.first_uuid).first()
+    result_id = result_get.id
+    result = MyWallet.query.get(result_id)
+    prev_bal = result.my_balance
+    new_uuid = uuid.uuid4()
+    cost = order.delivery_cost
+    
+    if prev_bal >= cost:
+        debit = prev_bal - cost
+        print(debit)
+        try: 
+            new_trans = MyWallet(user_id=user_id,
+                                my_balance=debit,
+                                debit_amount=debit,
+                                uuid=str(new_uuid),
+                                trans_reference=0,
+                                trans_amount=cost,
+                                whole_trans_log=0,
+                                trans_id=0,
+                                trans_fees=0,
+                                trans_signature=0)
+
+            order.payment_status = "paid"
+            order.status = "completed"
+            user_qry.first_uuid = str(new_uuid)
+            user_qry.user_account_balance = debit
+            db.session.commit()
+            
+            db.session.add(new_trans)
+            db.session.commit()
+            flash(f"Payment successful! Your new balance is {debit}", category="success")
+            return redirect(url_for("user_dash"))
+        
+        except Exception as e:
+            print(e)
+            flash("oops, there was an issue with the payment", category="error")
+            return redirect(url_for("user_dash"))
+            
+    else:
+        flash("oops, insufficient funds...", category="error")
+        return redirect(url_for("user_dash"))
+        
+        
+        
+
 @app.route("/user-dash/credit-account", methods=["POST", "GET"])
 @login_required_user
 def pay_credit_account():
@@ -1421,6 +1501,8 @@ def user_dash():
             # min_distance = float('inf')
             
             riders = 0
+            nearest_riders = 0
+            sorted_riders = 0
                 
             distances = {}
             for driver_id, coords in lat_lon.items():

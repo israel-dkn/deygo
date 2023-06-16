@@ -410,7 +410,7 @@
     
               <!-- Heading -->
               <h2 class="card-title">
-                <a href="../profile-posts.html">{{ current_user.first_name }} {{ current_user.last_name }}</a>
+                <a href="/">{{ current_user.first_name }} {{ current_user.last_name }}</a>
               </h2>
     
               <!-- Text -->
@@ -555,6 +555,63 @@
     {%else%}
 
         {% for order_qry in order_qry %}
+
+
+        {% if order_qry.status == "pending-payment" %}
+                {% set variable1 = timestamp %}
+                {% set variable2 = order_qry.time_created %}
+            
+                {% set result = variable1 - variable2 %}
+
+                {% set result2 = result/60 %}
+
+                {% set resultmin = result2|total_seconds %}
+
+{% if resultmin|int < 3 %}
+<!-- POP-UP NOTIFICATION JS -->
+<script>
+    // JavaScript code for showing the popup
+    window.addEventListener('DOMContentLoaded', function() {
+        var popup = document.getElementById('popup');
+        var dismissBtn = document.getElementById('dismiss-btn');
+    
+    dismissBtn.addEventListener('click', function() {
+      popup.style.display = 'none';
+    });
+
+        popup.style.display = 'block';
+      });
+  </script>
+<!-- END POP-UP NOTIFICATION JS -->
+
+<!-- POP-UP NOTIFICATION -->
+<div class="modal" id="popup" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">The rider has delivered your order</h5>
+          <span>
+            {% if resultmin|int < 1 %} just now
+            {% elif resultmin|int < 2 %} 2 min left
+            {% else %} please hurry up!
+        {% endif %}</span>
+        </div>
+        <div class="modal-body">
+          <h6><small>FROM:</small> {{ order_qry.pickup }} </h6>
+          <h6><small>TO:</small> {{ order_qry.dropoff }}</h6>
+          <h5><small>Cost:</small> {{order_qry.delivery_cost|format_number}}</h5>
+        </div>
+        <div class="modal-footer justify-content-center">
+          <button type="button" id="dismiss-btn" class="btn btn-outline-primary btn-lg">Back</button>
+          <a href="{{ url_for('order_payment', id=order_qry.id)}}" target="_blank" type="button" class="btn btn-primary btn-lg w-75" >Pay now</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- END POP-UP NOTIFICATION -->
+{% endif %}
+{% endif %}
         <div class="container">
             <div class="card">
                 <div class="card-body">
@@ -672,7 +729,11 @@
                 {% else %}
                 <!-- Button trigger modal -->
                 <button class="btn btn-outline-primary btn-lg" data-toggle="modal" data-target="#cancel-request-modal{{ order_qry.id }}">Cancel Request</button>
+                {% if order_qry.status == 'pending-payment' %}
+                <a href="{{ url_for('order_payment', id=order_qry.id)}}" class="btn btn-primary btn-lg w-75">PAY NOW</a>
+                {% else %}
                 <a class="btn btn-primary btn-lg w-75">Track This Order #{{ order_qry.track_id }}</a>
+                {% endif %}
                 <!-- Modal Cancel Request -->
                     <div class="modal fade" id="cancel-request-modal{{ order_qry.id }}" tabindex="-1" role="dialog" aria-labelledby="cancel-request-modal" aria-hidden="true">
                         <div class="modal-dialog" role="document">
