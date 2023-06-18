@@ -669,6 +669,9 @@
                     {% endif %}
                 {% elif order_qry.status == 'canceled' %}
                 <p class="card-text">Status:<i> <span class="badge badge-pill p-2 badge-danger"> {{ order_qry.status }} </i></span> </p>
+                
+                {% elif order_qry.status == 'pending-payment' %}
+                <p class="card-text">Status:<i> <span class="badge badge-pill p-2 badge-warning"> {{ order_qry.status }} </i></span> </p>
             
                 {% else %}
                     <p class="card-text">Status: <span class="badge badge-pill badge-secondary"> {{ order_qry.status }} </span> </p>
@@ -729,8 +732,30 @@
                 {% else %}
                 <!-- Button trigger modal -->
                 <button class="btn btn-outline-primary btn-lg" data-toggle="modal" data-target="#cancel-request-modal{{ order_qry.id }}">Cancel Request</button>
+                
                 {% if order_qry.status == 'pending-payment' %}
-                <a href="{{ url_for('order_payment', id=order_qry.id)}}" class="btn btn-primary btn-lg w-75">PAY NOW</a>
+                    <a data-toggle="modal" data-target="#pay-request-modal{{ order_qry.id }}" class="btn btn-primary btn-lg w-75">PAY NOW</a>
+                
+                <!-- Modal pay Request -->
+                 <div class="modal fade" id="pay-request-modal{{ order_qry.id }}" tabindex="-1" role="dialog" aria-labelledby="cancel-request-modal" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                        <h5 class="modal-title" id="exampleModalLabel"><small>Pay Order </small>#{{ order_qry.track_id }}</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        </div>
+                        <div class="modal-body">
+                            <b>{{ order_qry.delivery_cost|format_number }}</b> will be deducted from your DEYGO! balance?
+                        </div>
+                        <div class="modal-footer">
+                        <a href="{{ url_for('order_payment', id=order_qry.id)}}" type="button" class="btn btn-primary w-100">PAY - <b>{{ order_qry.delivery_cost|format_number }}</b></a>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+       
                 {% else %}
                 <a class="btn btn-primary btn-lg w-75">Track This Order #{{ order_qry.track_id }}</a>
                 {% endif %}

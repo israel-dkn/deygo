@@ -14,7 +14,7 @@ from flask_migrate import Migrate
 import math
 from functools import wraps
 import uuid
-
+import bcrypt
 
 
 
@@ -55,26 +55,34 @@ def load_user(user_id):
 def login_required_partner(view_func):
     @wraps(view_func)
     def wrapper(*args, **kwargs):
-        if session.get('type') == None:
-            flash("Login to access this page", category="error")
+        if current_user.is_authenticated:
+            if session.get('type') == None:
+                flash("Login to access this page", category="error")
+                return redirect(url_for("login"))
+            if session.get('type') != 'partner':
+                flash("Hello, You must be a partner to access this page!", category="error")
+                return redirect(url_for("login"))
+            return view_func(*args, **kwargs)
+        else:
+            flash("Hello, You must create an account to access this page!", category="error")
             return redirect(url_for("login"))
-        if session.get('type') != 'partner':
-            flash("Hello, You must be a partner to access this page!", category="error")
-            return redirect(url_for("login"))
-        return view_func(*args, **kwargs)
     return wrapper
 
 
 def login_required_user(view_func):
     @wraps(view_func)
     def wrapper(*args, **kwargs):
-        if session.get('type') is None:
-            flash("Login to access this page", category="error")
+        if current_user.is_authenticated:
+            if session.get('type') is None:
+                flash("Login to access this page", category="error")
+                return redirect(url_for("login"))
+            if session.get('type') != 'user':
+                flash("Hello, You do not have permission to access this URL!", category="error")
+                return redirect(url_for("login"))
+            return view_func(*args, **kwargs)
+        else:
+            flash("Hello, You must create an account to access this page!", category="error")
             return redirect(url_for("login"))
-        if session.get('type') != 'user':
-            flash("Hello, You do not have permission to access this URL!", category="error")
-            return redirect(url_for("login"))
-        return view_func(*args, **kwargs)
     return wrapper
 
 
@@ -84,7 +92,41 @@ def login_required_user(view_func):
 #
 #
 #
+def verify_uuid(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        # Assuming `MyUser` is the model for your User table
+        encrypted_uuid = kwargs.get('uuid')
 
+        # Verify the encrypted UUID
+        is_verified = verify_uuid(encrypted_uuid)
+
+        if is_verified:
+            # If UUID is verified, allow access to the database operation
+            return func(*args, **kwargs)
+        else:
+            # If UUID is not verified, block access to the database operation
+            raise PermissionError("UUID verification failed. Access denied.")
+
+    return wrapper
+
+def hash_uuid(uuid):
+    # Generate a salt for bcrypt
+    salt = bcrypt.gensalt()
+
+    # Hash the password using bcrypt
+    hashed_password = bcrypt.hashpw(uuid.encode('utf-8'), salt)
+
+    # Return the hashed password as a string
+    return hashed_password.decode('utf-8')
+
+
+# def verify_uuid(uuid, hashed_uuid):
+#     # Encode the password as UTF-8
+#     encoded_uuid = uuid.encode('utf-8')
+
+#     # Compare the hashed password with the plaintext password
+#     return bcrypt.checkpw(encoded_uuid, hashed_uuid)
 
 
 def ran_id():
@@ -209,6 +251,8 @@ class PartnerSignup(db.Model, UserMixin):
     driver_status = db.Column(db.String(20), default='available') # on-ride, offline
     delivery_status = db.Column(db.String(20), default='null')
     date_edited = db.Column(db.DateTime)
+    dri_account_balance = db.Column(db.Integer)
+    dri_uuid = db.Column(db.String)
     driver = db.relationship('Orders', backref='partner')
     driver_wallet = db.relationship('MyWallet', backref='partner_wallet')
     
@@ -285,6 +329,7 @@ class SiteVisits(db.Model):
 with app.app_context():
     # db.drop_all()
     db.create_all()
+
 
 # <---- END DB MODELS ---->
 
@@ -417,7 +462,6 @@ def go_offline():
     partner_stat = PartnerSignup.query.get(partner_id)
     last_order_count = Orders.query.filter_by(driver_id=partner_id, status='accepted').order_by(Orders.id.desc()).count()
     
-    
     if last_order_count > 1:
         flash("Unable to go OFFLINE! Complete pending rides to go Offline...", category="error")
         return redirect(url_for("dashboard_rides"))
@@ -473,28 +517,75 @@ def arrived(id):
 def order_complete(id):
     orders = Orders.query.get(id)
     partner_id = current_user.id
-    partner_stat = PartnerSignup.query.get(partner_id)
+    dri_qry = PartnerSignup.query.get(orders.driver_id)
     
-    total = format_number_with_commas(orders.delivery_cost)
-    if orders.status != "completed":
-        if orders.status == "pending-payment":
-            flash("You cannot complete this ride at the moment", category='warning')
-            return redirect(url_for("order_details", id=id))
+    if orders.driver_id == partner_id:
+        if orders.status != "completed":
+            if orders.status == "pending-payment":
+                flash("You cannot complete this ride at the moment", category='warning')
+                return redirect(url_for("order_details", id=id))
+            
+            else:
+                percentage = 0.30
+                dri_uuid = uuid.uuid4()
+                hash_dri_uuid = hash_uuid(str(dri_uuid))
+                cost = orders.delivery_cost
+                try:
+                    
+                    #query driver last transaction
+                    dri_bal_get = MyWallet.query.filter_by(uuid=dri_qry.dri_uuid).first()
+                    #get last transaction id
+                    trans_det = MyWallet.query.get(dri_bal_get.id)
+                    #get the balance from that transaction
+                    dri_prev_bal = trans_det.my_balance
+                    
+                    #calculate the 30% transaction fee
+                    our_fees = cost * percentage
+                    
+                    #get the actual order fee for the driver by subtracting deygo percentage
+                    cre_amt = cost - our_fees
+                    
+                    dri_credit = dri_prev_bal + cre_amt
+                    print(f"driver earned: {cre_amt}")
+                    
+                    pay_dri = MyWallet(driver_id=orders.driver_id,
+                                        my_balance=dri_credit,
+                                        credit_amount=cre_amt,
+                                        uuid=hash_dri_uuid,
+                                        trans_reference=0,
+                                        trans_amount=cost,
+                                        whole_trans_log=0,
+                                        trans_id=0,
+                                        trans_fees=our_fees,
+                                        trans_signature=0,
+                                        trans_status="success",
+                                        trans_message="credit")
+                    
+                    dri_qry.dri_account_balance = dri_credit
+                    dri_qry.dri_uuid = hash_dri_uuid
+                    dri_qry.driver_status = 'available'
+                    orders.status = "completed"
+                    
+                    db.session.add(pay_dri)
+                    db.session.commit()
+                    flash("Order Completed! N{} has been added to your balance".format(format_number_with_commas(cre_amt)), category='success')
+                    return redirect(url_for("partner_dashboard"))
+                    
+                except Exception as e:
+                    print("There was a problem adding driver payment")
+                    print(f"driver payment error is: {e}")
+                    
+                    
+        elif orders.status == "completed":
+            flash("Order completed already!")
+            return redirect(url_for("partner_dashboard"))
         
-        if orders.status == "accepted":
-            partner_stat.driver_status = 'available'
-            orders.status = "completed"
-            
-            try:
-                db.session.commit()
-                flash("Order Completed! N{} has been added to your balance".format(total), category='success')
-                return redirect(url_for("partner_dashboard"))
-            except:
-                flash("oops, There was an error updating your status", category='error')
-            
-    elif orders.status == "completed":
-        flash("Order Completed! N{} has been added to your balance".format(total), category='success')
+    else:
+        flash("You are not allowed to perform this action!")
         return redirect(url_for("partner_dashboard"))
+
+
+
 
 
 @app.route("/rider/order/details/<int:id>")
@@ -572,6 +663,7 @@ def order_details(id):
                             dst_latitude=dst_latitude,
                             longitude=longitude,
                             partner_loc=partner_loc)
+        
     else:
         flash("Error...Not Allowed", category='error')
         return redirect(url_for("partner_dashboard"))
@@ -603,28 +695,6 @@ def format_number_with_commas(number):
 # Register the custom filter
 app.jinja_env.filters['total_seconds'] = total_seconds_filter
 app.jinja_env.filters['format_number'] = format_number_with_commas
-
-def calculate_time_difference(minutes_ago):
-    current_time = datetime.now()
-    time_difference = current_time - minutes_ago
-    minutes = int(time_difference.total_seconds() / 60)
-#     return minutes
-
-
-def display_time_ago(minutes):
-    if minutes < 1:
-        return "Just now"
-    elif minutes == 1:
-        return "1 min ago"
-    elif minutes < 60:
-        return "{} mins ago".format(minutes)
-    elif minutes < 1440:
-        hours = minutes // 60
-        return "{} hours ago".format(hours)
-    else:
-        days = minutes // 1440
-        return "{} days ago".format(days)
-
 
 
 
@@ -769,7 +839,6 @@ def user_signup():
             db.session.commit()
             flash("You have successfully registered to {}".format(site_name))
             return redirect(url_for('login'))
-
     return render_template("user-register.html", form=form)
 
 
@@ -781,7 +850,7 @@ def user_signup():
 def login():
     form = LoginForm()
     form2 = PartnerLoginForm()
-    if request.method == "POST" and form.validate:
+    if form.validate_on_submit():
         user_mail = UserSignup.query.filter_by(email=form.email.data).first()
         user_pass = UserSignup.query.filter_by(password=form.password.data).first()
         if user_mail and user_pass:
@@ -795,7 +864,7 @@ def login():
             form.email.data = '' 
             form.password.data = ''
             
-    if request.method == "POST" and form2.validate:
+    if form2.validate_on_submit():
         partner_username = PartnerSignup.query.filter_by(username=form2.username.data).first()
         partner_mail = PartnerSignup.query.filter_by(email=form2.email.data).first()
         partner_pass = PartnerSignup.query.filter_by(password=form2.password.data).first()
@@ -847,6 +916,31 @@ def view_driver(id):
                            orders_count=orders_count)
 
 
+@app.route("/company/transactions", methods=["POST", "GET"], defaults={"page" : 1})
+@app.route("/company/transactions/<int:page>", methods=["POST", "GET"])
+@login_required_partner
+def dashboard_transactions(page):
+    partner_id = current_user.id
+    wallet_qry = MyWallet.query.filter(MyWallet.partner_wallet.has(id=partner_id)).order_by(MyWallet.id.desc()).paginate(page=page, per_page=5)
+    order_qry = Orders.query.filter(Orders.partner.has(id=partner_id)).order_by(Orders.id.desc()).paginate(page=page, per_page=5)
+    last_order = Orders.query.filter_by(driver_id=partner_id, status='accepted').order_by(Orders.id.desc()).first()
+    # orders_sum = db.session.query(db.func.sum(Orders.delivery_cost)).filter_by(driver_id=current_user.id, status='completed').scalar()
+    orders_count = Orders.query.filter_by(driver_id=partner_id, status='completed').count()
+    trans_count_all = MyWallet.query.filter_by(driver_id=partner_id).count()
+    timestamp = datetime.now()
+    
+    return render_template("driver-transactions.html",
+                           wallet_qry=wallet_qry,
+                           order_qry=order_qry,
+                           orders_count=orders_count,
+                           timestamp=timestamp,
+                           trans_count_all=trans_count_all,
+                           last_order=last_order)
+    
+    
+    
+    
+    
 
 @app.route("/company/my-rides", methods=["POST", "GET"], defaults={"page" : 1})
 @app.route("/company/my-rides/<int:page>", methods=["POST", "GET"])
@@ -1067,44 +1161,48 @@ def blog():
 @app.route("/rider/order/accept/<int:id>")
 @login_required_partner
 def order_accepted(id):
-    accepted_by = current_user.id
-    driver_stat = PartnerSignup.query.get(accepted_by)
-    order_accept = Orders.query.get(id)
-    access = order_accept.driver_id
-    last_order_count = Orders.query.filter_by(driver_id=accepted_by, status='accepted').order_by(Orders.id.desc()).count()
+    if current_user.dri_uuid is None:
+        flash("Activate your deygo wallet to accept requests!")
+        return redirect(url_for("partner_dashboard"))
+    else:
+        accepted_by = current_user.id
+        driver_stat = PartnerSignup.query.get(accepted_by)
+        order_accept = Orders.query.get(id)
+        access = order_accept.driver_id
+        last_order_count = Orders.query.filter_by(driver_id=accepted_by, status='accepted').order_by(Orders.id.desc()).count()
+            
+        if driver_stat.driver_status == "offline":
+            flash("Go online to accept new rides!", category="warning")
+            return redirect(url_for("partner_dashboard"))
+        elif order_accept.status == "accepted" and current_user.id != access:
+            flash("Oopss! Order Accepted by another rider...", category="error")
+            return redirect(url_for("partner_dashboard"))
+        elif last_order_count > 2:
+            flash("Oopss! Complete current rides to accept new ones!", category="error")
+            return redirect(url_for("partner_dashboard"))
+            # to ensure rides are not accepted by multiple drivers
+        elif order_accept.status == "pending":
+            order_accept.status = 'accepted'
+            order_accept.driver_id = accepted_by
+            order_accept.accepted_by = accepted_by
+            driver_stat.driver_status = 'on-ride'
+            try:
+                db.session.commit()
+                flash("Order Accepted!", category='success')
+                return redirect(url_for("order_details", 
+                                        id=id))
+            except:
+                flash("oops, There was an error accepting this order...", category='error')
         
-    if driver_stat.driver_status == "offline":
-        flash("Go online to accept new rides!", category="warning")
-        return redirect(url_for("partner_dashboard"))
-    elif order_accept.status == "accepted" and current_user.id != access:
-        flash("Oopss! Order Accepted by another rider...", category="error")
-        return redirect(url_for("partner_dashboard"))
-    elif last_order_count > 2:
-        flash("Oopss! Complete current rides to accept new ones!", category="error")
-        return redirect(url_for("partner_dashboard"))
-        # to ensure rides are not accepted by multiple drivers
-    elif order_accept.status == "pending":
-        order_accept.status = 'accepted'
-        order_accept.driver_id = accepted_by
-        order_accept.accepted_by = accepted_by
-        driver_stat.driver_status = 'on-ride'
-        try:
-            db.session.commit()
-            flash("Order Accepted!", category='success')
+        elif order_accept.status == "accepted" and current_user.id == access:
+            flash("Order has already been accepted by you!")
             return redirect(url_for("order_details", 
-                                    id=id))
-        except:
-            flash("oops, There was an error accepting this order...", category='error')
+                                        id=id))
     
-    elif order_accept.status == "accepted" and current_user.id == access:
-        flash("Order has already been accepted by you!")
-        return redirect(url_for("order_details", 
-                                    id=id))
-   
+        
+        return redirect(url_for("order_details"))
+        
     
-    return redirect(url_for("order_details"))
-    
-   
 @app.route("/cancel/request/<int:id>")
 @login_required_user
 def cancel_request(id):
@@ -1112,7 +1210,7 @@ def cancel_request(id):
     cancel_request = Orders.query.get(id)
     
     
-    if cancel_request.status == "accepted":
+    if cancel_request.driver_id is not None :
         flash("You cannot cancel this request, a rider has accepted it already...", category="error")
         return redirect(url_for("user_dash"))
     else:
@@ -1180,54 +1278,110 @@ def credit_account(id, amount):
 @app.route("/pay/order/<int:id>", methods=["POST", "GET"])
 @login_required_user
 def order_payment(id):
-    order = Orders.query.get(id)
-    user_id = current_user.id
-    user_qry = UserSignup.query.get(user_id)
-    # query MyWallet db with the last uuid saved to the customer to get their last balance
-    result_get = MyWallet.query.filter_by(uuid=user_qry.first_uuid).first()
-    result_id = result_get.id
-    result = MyWallet.query.get(result_id)
-    prev_bal = result.my_balance
-    new_uuid = uuid.uuid4()
-    cost = order.delivery_cost
-    
-    if prev_bal >= cost:
-        debit = prev_bal - cost
-        print(debit)
-        try: 
-            new_trans = MyWallet(user_id=user_id,
-                                my_balance=debit,
-                                debit_amount=debit,
-                                uuid=str(new_uuid),
-                                trans_reference=0,
-                                trans_amount=cost,
-                                whole_trans_log=0,
-                                trans_id=0,
-                                trans_fees=0,
-                                trans_signature=0)
-
-            order.payment_status = "paid"
-            order.status = "completed"
-            user_qry.first_uuid = str(new_uuid)
-            user_qry.user_account_balance = debit
-            db.session.commit()
-            
-            db.session.add(new_trans)
-            db.session.commit()
-            flash(f"Payment successful! Your new balance is {debit}", category="success")
-            return redirect(url_for("user_dash"))
-        
-        except Exception as e:
-            print(e)
-            flash("oops, there was an issue with the payment", category="error")
-            return redirect(url_for("user_dash"))
-            
-    else:
-        flash("oops, insufficient funds...", category="error")
+    if current_user.first_uuid is None:
+        flash("Activate your DEYGO! wallet to continue...", category="error")
         return redirect(url_for("user_dash"))
+    
+    else:
+        percentage = 0.30
+        order = Orders.query.get(id)
+        user_id = current_user.id
+        user_qry = UserSignup.query.get(user_id)
+        # query MyWallet db with the last uuid saved to the customer to get their last balance
+        result_get = MyWallet.query.filter_by(uuid=user_qry.first_uuid).first()
+        result_id = result_get.id
+        result = MyWallet.query.get(result_id)
+        prev_bal = result.my_balance
         
+        new_uuid = uuid.uuid4()
+        dri_uuid = uuid.uuid4()
         
+        cost = order.delivery_cost
         
+        if prev_bal >= cost:
+            debit = prev_bal - cost
+            print(debit)
+            try: 
+                new_trans = MyWallet(user_id=user_id,
+                                    my_balance=debit,
+                                    debit_amount=debit,
+                                    uuid=str(new_uuid),
+                                    trans_reference=0,
+                                    trans_amount=cost,
+                                    whole_trans_log=0,
+                                    trans_fees=0,
+                                    trans_signature=0,
+                                    trans_id=0,
+                                    trans_status="success",
+                                    trans_message="debit")
+
+                order.payment_status = "paid"
+                order.status = "completed"
+                user_qry.first_uuid = str(new_uuid)
+                user_qry.user_account_balance = debit
+                
+                db.session.add(new_trans)
+                db.session.commit()
+                
+                print("payment successful, attempting to add driver earning")
+                try:
+                    dri_qry = PartnerSignup.query.get(order.driver_id)
+                    #query driver last transaction
+                    dri_bal_get = MyWallet.query.filter_by(uuid=dri_qry.dri_uuid).first()
+                    #get last transaction id
+                    trans_det = MyWallet.query.get(dri_bal_get.id)
+                    #get the balance from that transaction
+                    dri_prev_bal = trans_det.my_balance
+                    
+                    #calculate the 30% transaction fee
+                    our_fees = cost * percentage
+                    
+                    #get the actual order fee for the driver by subtracting deygo percentage
+                    cre_amt = cost - our_fees
+                    
+                    dri_credit = dri_prev_bal + cre_amt
+                    print(f"driver earned: {cre_amt}")
+                    
+                    pay_dri = MyWallet(driver_id=order.driver_id,
+                                        my_balance=dri_credit,
+                                        credit_amount=cre_amt,
+                                        uuid=str(dri_uuid),
+                                        trans_reference=0,
+                                        trans_amount=cost,
+                                        whole_trans_log=0,
+                                        trans_id=0,
+                                        trans_fees=our_fees,
+                                        trans_signature=0,
+                                        trans_status="success",
+                                        trans_message="credit")
+                    
+                    dri_qry.dri_account_balance = dri_credit
+                    dri_qry.dri_uuid = str(dri_uuid)
+                    dri_qry.driver_status = 'available'
+                    
+                    db.session.add(pay_dri)
+                    db.session.commit()
+                    
+                except Exception as e:
+                    print("There was a problem adding driver payment")
+                    print(f"driver payment error is: {e}")
+                
+                
+                flash(f"Payment successful! Your new balance is N{format_number_with_commas(debit)}", category="success")
+                return redirect(url_for("user_dash"))
+                
+            
+            except Exception as e:
+                print(e)
+                flash("oops, there was an issue with the payment", category="error")
+                return redirect(url_for("user_dash"))
+                
+        else:
+            flash("oops, insufficient funds! Please topup your balance and try again...", category="error")
+            return redirect(url_for("user_dash"))
+            
+            
+            
 
 @app.route("/user-dash/credit-account", methods=["POST", "GET"])
 @login_required_user
@@ -1264,9 +1418,12 @@ def pay_credit_account():
                 trans_log = response_pay_verify.text
                 print(trans_log)
                 print(response_pay_verify_res)
+                print(response_pay_verify_mail)
                 
                 if response_pay_verify_res == "success":
+                    
                     if response_pay_verify_mail == current_user.email:
+                        print(response_pay_verify_mail)
                         # get the last transaction uuid from the customer
                         result_get = MyWallet.query.filter_by(uuid=user_details.first_uuid).first()
                         
@@ -1300,13 +1457,14 @@ def pay_credit_account():
                                                 whole_trans_log=trans_log,
                                                 trans_id=trans_id_api,
                                                 trans_fees=trans_fees_api,
-                                                trans_signature=trans_signature_api)
+                                                trans_signature=trans_signature_api,
+                                                trans_status="success",
+                                                trans_message="credit")
                             
                             cur_bal = user_details.user_account_balance
                             
                             user_details.user_account_balance = new_bal
                             user_details.first_uuid = str(generated_uuid)
-                            db.session.commit()
                         
                             db.session.add(new_trans)
                             db.session.commit()
@@ -1408,8 +1566,7 @@ def user_dash():
 
         form = RequestOrderForm(request.form)
         credit_form = CreditForm(request.form)
-        create_wallet_form = CreateWallet(request.form)
-        
+    
         
         if form.validate_on_submit():
             
@@ -1491,66 +1648,92 @@ def user_dash():
             for lat_lons in riders_qry:
                 lat_lon[lat_lons.id] = [ lat_lons.driver_lat, lat_lons.driver_lon ]
 
-            if lat_lon is None:
-                lat_lon = {float(0.0)}
-                
-            print(lat_lon)
-                            
-            pickup_coord = [lat, lon]
-            # nearest_rider = None
-            # min_distance = float('inf')
+            if not lat_lon:
+                print("no rider available")
+                try:
+                    # Add new order to db
+                    order = Orders(placed_by_id=user_id,
+                                pickup=address,
+                                dropoff=address2,
+                                user_id=user_id,
+                                delivery_time=testtime,
+                                delivery_distance=testdistance,
+                                delivery_cost=testcost,
+                                pickup_lat=lat,
+                                pickup_lon=lon,
+                                dropoff_lat=lat2,
+                                dropoff_lon=lon2,
+                                available_riders=0,
+                                delivery_mode=delivery_mode)
+                    db.session.add(order)
+                    db.session.commit()
+                    flash("Order Request Created Successfully!", category='success')
+                    return redirect(url_for("user_dash"))
+                except Exception as e:
+                    print(f"the order error was: {e}")
+                    flash("Oops, there was an error placing that request...", category='error')
             
-            riders = 0
-            nearest_riders = 0
-            sorted_riders = 0
+            else:
                 
-            distances = {}
-            for driver_id, coords in lat_lon.items():
-                dri_lat = coords[0]
-                dri_lon = coords[1]
-                distance =  math.sqrt((float(pickup_coord[0]) - dri_lat) ** 2 + (float(pickup_coord[1]) - dri_lon) ** 2) 
-                distances[driver_id] = distance
+                print(lat_lon)
+                                
+                pickup_coord = [lat, lon]
+                # nearest_rider = None
+                # min_distance = float('inf')
                 
-                sorted_riders = sorted(lat_lon.items(), key=lambda x: x[1])
-                
-                # Select the three nearest points
-                nearest_riders = sorted_riders[:5]
-                
-                
-                
-                for riders, distance in nearest_riders:
-                
-                    print(riders)
-        
-            print(nearest_riders)
-
-            print(sorted_riders)
-                
-                
+                riders = 0
+                nearest_riders = 0
+                sorted_riders = 0
                     
-            try:
-                # Add new order to db
-                order = Orders(placed_by_id=user_id,
-                            pickup=address,
-                            dropoff=address2,
-                            user_id=user_id,
-                            delivery_time=testtime,
-                            delivery_distance=testdistance,
-                            delivery_cost=testcost,
-                            pickup_lat=lat,
-                            pickup_lon=lon,
-                            dropoff_lat=lat2,
-                            dropoff_lon=lon2,
-                            available_riders=riders,
-                            delivery_mode=delivery_mode)
-                db.session.add(order)
-                db.session.commit()
-                flash("Order Request Created Successfully!", category='success')
-                return redirect(url_for("user_dash"))
-            except Exception as e:
-                print(f"the order error was: {e}")
-                flash("Oops, there was an error placing that request...", category='error')
-        
+                distances = {}
+                for driver_id, coords in lat_lon.items():
+                    dri_lat = float(coords[0])
+                    dri_lon = float(coords[1])
+                    distance =  math.sqrt((float(pickup_coord[0]) - dri_lat) ** 2 + (pickup_coord[1] - dri_lon) ** 2) 
+                    distances[driver_id] = distance
+                    
+                    sorted_riders = sorted(lat_lon.items(), key=lambda x: x[1])
+                    
+                    
+                    # Select the three nearest points
+                    nearest_riders = sorted_riders[:5]
+                    
+                    
+                    
+                    for riders, distance in nearest_riders:
+                    
+                        print(riders)
+            
+                print(nearest_riders)
+
+                print(sorted_riders)
+                    
+                    
+                        
+                try:
+                    # Add new order to db
+                    order = Orders(placed_by_id=user_id,
+                                pickup=address,
+                                dropoff=address2,
+                                user_id=user_id,
+                                delivery_time=testtime,
+                                delivery_distance=testdistance,
+                                delivery_cost=testcost,
+                                pickup_lat=lat,
+                                pickup_lon=lon,
+                                dropoff_lat=lat2,
+                                dropoff_lon=lon2,
+                                available_riders=riders,
+                                delivery_mode=delivery_mode)
+                    db.session.add(order)
+                    db.session.commit()
+                    flash("Order Request Created Successfully!", category='success')
+                    return redirect(url_for("user_dash"))
+                except Exception as e:
+                    print(f"the order error was: {e}")
+                    flash("Oops, there was an error placing that request...", category='error')
+            
+            
         if credit_form.validate_on_submit():
             return redirect(url_for("credit_account",
                                     id=current_user.id,
@@ -1568,9 +1751,10 @@ def user_dash():
         return redirect(url_for("login"))
 
 
-@app.route('/user-dash/wallet/create/<int:id>')
-@login_required_user
+@app.route('/create/<int:id>')
+@login_required
 def create_wallet_func(id):
+    if session['type'] == "user":
         user_details = UserSignup.query.get(id)
         if user_details.first_uuid == None:
             
@@ -1593,7 +1777,7 @@ def create_wallet_func(id):
                 user_details.first_uuid = str(ran_uuid)
                 db.session.commit()
                 
-                flash("Wallet Activated!", category='success')
+                flash("User Wallet Activated!", category='success')
                 return redirect(url_for("user_dash"))
             except Exception as e:
                 print(e)
@@ -1601,9 +1785,56 @@ def create_wallet_func(id):
                 return redirect(url_for("user_dash")) 
                
         else:
-            flash("Your wallet has already been activated", category="warning")
+            flash("Your partner wallet has already been activated", category="warning")
             return redirect(url_for("user_dash"))
         
+    elif session['type'] == "partner":
+        partner_details = PartnerSignup.query.get(id)
+        if partner_details.dri_uuid == None:
+            
+            dri_uuid = uuid.uuid4()
+            print(dri_uuid)
+            default = 0
+            try:
+                create_wallet = MyWallet(my_balance=default,
+                                            uuid=str(dri_uuid),
+                                            user_id=id,
+                                            trans_reference=default,
+                                            trans_id=default,
+                                            trans_amount=default,
+                                            trans_fees=default,
+                                            trans_signature=default)
+                db.session.add(create_wallet)
+                db.session.commit()
+                
+                partner_details.dri_account_balance = 0
+                partner_details.dri_uuid = str(dri_uuid)
+                db.session.commit()
+                
+                flash("Partner Wallet Activated!", category='success')
+                return redirect(url_for("partner_dashboard"))
+            except Exception as e:
+                print(e)
+                flash("oops, there was an error creating your wallet...", category='error')
+                return redirect(url_for("partner_dashboard")) 
+               
+        else:
+            flash("Your partner wallet has already been activated", category="warning")
+            return redirect(url_for("partner_dashboard"))
+        
+    else:
+        flash("Not Allowed", category="warning")
+        return redirect(url_for("main_home"))
+    
+
+@app.route("/main")
+def main_home():
+    if session['type'] == "partner":
+        return redirect(url_for("partner_dashboard"))
+    elif session['type'] == "user":
+        return redirect(url_for("user_dash"))
+    else:
+        return redirect(url_for("home"))
 
 
 # @app.route('/order/<int:order_id>/accept')
