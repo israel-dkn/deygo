@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Taxi cars dispatcher</title>
+  <meta charset="UTF-8">
+  <link rel='stylesheet' type='text/css' href='https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.6.0/maps/maps.css'>
+  <script src="https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.6.0/maps/maps-web.min.js"></script>
+  <script src="https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.6.0/services/services-web.min.js"></script>
+  <!-- Customized Bootstrap Stylesheet -->
+  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+    
+  <style>
+    
+    #map {
+      height: 100vh;
+      width: 100vw;
+    }
+
+    #submit-button {
+      background: #df1b12;
+      padding: 10px;
+      margin-top: 10px;
+      width: 100%;
+      color: white;
+      font-weight: bold;
+      transition: background-color .15s ease-in-out;
+      text-transform: uppercase;
+      border: none;
+      outline: none;
+    }
+
+    #submit-button:hover {
+      cursor: pointer;
+      background: #b1110e;
+    }
+
+    #labels-container {
+      font-family: "Helvetica Neue", Arial, Helvetica, sans-serif;
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      width: 400px;
+      padding: 10px;
+      margin: 10px;
+      background-color: white;
+      box-shadow: rgba(0, 0, 0, 0.45) 2px 2px 2px 0px;
+    }
+
+    #labels-container label {
+      line-height: 2;
+      font-size: 1.2em;
+      font-weight: bold;
+    }
+
+    #labels-container #route-labels div {
+      border-left: 6px solid;
+      padding-left: 5px;
+      margin-top: 3px;
+    }
+
+    #route-labels div:hover {
+      cursor: pointer;
+      box-shadow: 0px 2px #888888;
+    }
+
+    
+  </style>
+</head>
+
+<body>
+
+     
+  <div id="map"></div>
+  <div id="labels-container">
+    <label>Find the taxi that will arrive fastest</label>
+    <div id="route-labels"></div>
+    <input type="button" id="submit-button" value="Submit">
+  </div>
+  
+  <script>
+    const apiKey = 'JoBjMY24siY0bENUY5g52SLXouAaf4FX';
+
+    // Check if the Geolocation API is supported by the browser
+if ('geolocation' in navigator) {
+  navigator.geolocation.getCurrentPosition(updateLocation);
+} else {
+  console.log('Geolocation is not supported by your browser');
+}
+
+function updateLocation(position) {
+  const latitude = position.coords.latitude;
+  const longitude = position.coords.longitude;
+  const currentLocation = [longitude, latitude];
+
+  // Replace passengerInitCoordinates with currentLocation
+  const passengerInitCoordinates = currentLocation;
+
+  console.log('Updated coordinates:', passengerInitCoordinates);
+
+
+    let passengerMarker;
+
+    let taxiPassengerBatchCoordinates = [];
+    let taxiConfig;
+    const zoomLevel = 14;
+
+    let routes = [];
+    let bestRouteIndex;
+
+    const routeLabelsDiv = document.getElementById('route-labels');
+
+    const routeWeight = 9;
+    const routeBackgroundWeight = 12;
+    const fastestRouteColor = '#00FF00';
+    const grayedOutDivColor = '#979797';
+
+    const map = tt.map({
+      key: apiKey,
+      container: 'map',
+      center: passengerInitCoordinates,
+      zoom: zoomLevel
+    });
+
+    //const modal = document.getElementById('modal');
+    //const modalContent = document.getElementById('modal-content'); 
+
+    const driLon1 = longitude + 0.005;
+
+
+    const driLat = latitude + 0.0069;
+    const driLon = longitude + 0.0010;
+
+    const driLat3 = latitude + 0.0099;
+    const driLon3 = longitude + 0.01115;
+
+
+console.log("Sum:",driLat, driLon);
+
+
+function setDefaultTaxiConfig() {
+      taxiConfig = [
+      {% for dri in dris %}
+      {% if dri.driver_status == "available" %}
+        createTaxi('{{dri.username}}', '#006967', [{{dri.driver_lon}}, {{dri.driver_lat}}], "{{url_for('static', filename='taxi.png')}}"),
+        {% endif %}
+        {% endfor %}
+        dummyTaxi('Bassey', '#EC619F', [driLon1, latitude], "{{url_for('static', filename='taxi.png')}}"),
+        dummyTaxi('Victor', '#002C5E', [driLon, driLat], "{{url_for('static', filename='taxi.png')}}"),
+        dummyTaxi('Kayode', '#F9B023', [driLon3, driLat3], "{{url_for('static', filename='taxi.png')}}")
+      ];
+    }
+
+    function createTaxi(name, color, coordinates, iconFilePath, iconWidth = 30, iconHeight = 30) {
+      return {
+        name: name,
+        color: color,
+        icon: "<img src=" + iconFilePath + " style='width: " + iconWidth + "px; height: " + iconHeight + "px;'>",
+        coordinates: coordinates
+      };
+    }
+
+    function dummyTaxi(name, color, coordinates, iconFilePath, iconWidth = 30, iconHeight = 30) {
+      return {
+        name: name,
+        color: color,
+        icon: "<img src=" + iconFilePath + " style='width: " + iconWidth + "px; height: " + iconHeight + "px;'>",
+        coordinates: coordinates
+      };
+    }
+
+
+    function updateTaxiBatchLocations(passengerCoordinates) {
+      taxiPassengerBatchCoordinates = [];
+      taxiConfig.forEach(taxi => {
+        taxiPassengerBatchCoordinates.push(taxi.coordinates + ':' + passengerCoordinates);
+      });
+    }
+
+    function humanReadableTimeFormat(time) {
+      const hrs = Math.floor(time / 3600);
+      const mins = Math.floor((time % 3600) / 60);
+      const secs = time % 60;
+      let formattedString = '';
+      if (hrs > 0) {
+        formattedString += hrs + ':' + (mins < 10 ? '0' : '');
+      }
+      formattedString += mins + ':' + (secs < 10 ? '0' : '');
+      formattedString += secs;
+      return formattedString;
+    }
+
+    function metersToKilometers(distance) {
+      distance = distance / 1000;
+      return distance.toFixed(1);
+    }
+
+    function convertToPoint(lat, long) {
+      return {
+        point: {
+          latitude: lat,
+          longitude: long
+        }
+      };
+    }
+
+    function routeOnMouseOverAnimation(route) {
+      map.moveLayer(route[0]);
+      map.moveLayer(route[1]);
+    }
+
+    function bringBestRouteToFront() {
+      map.moveLayer(routes[bestRouteIndex][0]);
+      map.moveLayer(routes[bestRouteIndex][1]);
+    }
+
+    function buildOriginsParameter() {
+      const origins = [];
+      taxiConfig.forEach(function (taxi) {
+        origins.push(convertToPoint(taxi.coordinates[1], taxi.coordinates[0]));
+      });
+      return origins;
+    }
+
+    function buildDestinationsParameter() {
+      return [convertToPoint(passengerMarker.getLngLat().lat, passengerMarker.getLngLat().lng)];
+    }
+
+    function modifyFastestRouteColor(travelTimeInSecondsArray) {
+      const sortedTab = travelTimeInSecondsArray.slice();
+      sortedTab.sort(function (a, b) { return a - b });
+      bestRouteIndex = travelTimeInSecondsArray.indexOf(sortedTab[0]);
+      taxiConfig[bestRouteIndex].color = fastestRouteColor;
+    }
+
+    //function displayModal() {
+    //  modalContent.innerText = 'Dispatch car number ' + String(bestRouteIndex + 1);
+    //  modal.style.display = 'block';
+    // }
+
+    function animateRouteOnDivHover(e) {
+      routeOnMouseOverAnimation(routes[e.target.id]);
+    }
+
+    function updateRouteLegend(travelTimeInSecondsArray, lengthInMetersArray, trafficDelayInSecondsArray) {
+      let div;
+      routeLabelsDiv.innerText = '';
+
+      taxiConfig.forEach(function (child, index) {
+        div = document.createElement('div');
+        div.id = index;
+        div.style.borderLeftColor = child.color;
+        if (index !== bestRouteIndex) {
+          div.style.color = grayedOutDivColor;
+        }
+        div.colorHex = child.color;
+        div.innerText = child.name
+          + ' drive time:' + humanReadableTimeFormat(travelTimeInSecondsArray[index])
+          + ', distance:' + metersToKilometers(lengthInMetersArray[index])
+          + 'km, ' + ((trafficDelayInSecondsArray[index] === 0) ? 'no traffic delay' : 'traffic delay:' + humanReadableTimeFormat(trafficDelayInSecondsArray[index]));
+        div.addEventListener('mouseover', animateRouteOnDivHover);
+        div.addEventListener('mouseout', bringBestRouteToFront);
+        routeLabelsDiv.appendChild(div);
+      });
+    }
+
+    function drawAllRoutes() {
+      tt.services.calculateRoute({
+        batchMode: 'sync',
+        key: apiKey,
+        batchItems: [
+          { locations: taxiPassengerBatchCoordinates[0] },
+          { locations: taxiPassengerBatchCoordinates[1] },
+          { locations: taxiPassengerBatchCoordinates[2] },
+          { locations: taxiPassengerBatchCoordinates[3] }
+        ]
+      })
+        .then(function (results) {
+          results.batchItems.forEach(function (singleRoute, index) {
+            const routeGeoJson = singleRoute.toGeoJson();
+            const route = [];
+            const route_background_layer_id = 'route_background_' + index;
+            const route_layer_id = 'route_' + index;
+
+            map.addLayer(buildStyle(route_background_layer_id, routeGeoJson, 'black', routeBackgroundWeight))
+              .addLayer(buildStyle(route_layer_id, routeGeoJson, taxiConfig[index].color, routeWeight));
+
+            route[0] = route_background_layer_id;
+            route[1] = route_layer_id;
+            routes[index] = route;
+
+            if (index === bestRouteIndex) {
+              const bounds = new tt.LngLatBounds();
+              routeGeoJson.features[0].geometry.coordinates.forEach(function (point) {
+                bounds.extend(tt.LngLat.convert(point));
+              });
+              map.fitBounds(bounds, { padding: 150 });
+            }
+
+            map.on("mouseenter", route_layer_id, function () {
+              map.moveLayer(route_background_layer_id);
+              map.moveLayer(route_layer_id);
+            });
+
+            map.on("mouseleave", route_layer_id, function () {
+              bringBestRouteToFront();
+            });
+          });
+          bringBestRouteToFront();
+        });
+    }
+
+    function buildStyle(id, data, color, width) {
+      return {
+        'id': id,
+        'type': 'line',
+        'source': {
+          'type': 'geojson',
+          'data': data
+        },
+        'paint': {
+          'line-color': color,
+          'line-width': width
+        },
+        'layout': {
+          'line-cap': 'round',
+          'line-join': 'round'
+        }
+      }
+    }
+
+    function clear() {
+      routes.forEach(function (child) {
+        map.removeLayer(child[0]);
+        map.removeLayer(child[1]);
+        map.removeSource(child[0]);
+        map.removeSource(child[1]);
+      });
+      routes = [];
+      setDefaultTaxiConfig();
+      passengerMarker.togglePopup();
+    }
+
+    function processMatrixResponse(result) {
+      const travelTimeInSecondsArray = [];
+      const lengthInMetersArray = [];
+      const trafficDelayInSecondsArray = [];
+      result.matrix.forEach(function (child) {
+        travelTimeInSecondsArray.push(child[0].response.routeSummary.travelTimeInSeconds);
+        lengthInMetersArray.push(child[0].response.routeSummary.lengthInMeters);
+        trafficDelayInSecondsArray.push(child[0].response.routeSummary.trafficDelayInSeconds);
+      });
+      modifyFastestRouteColor(travelTimeInSecondsArray);
+      updateRouteLegend(travelTimeInSecondsArray, lengthInMetersArray, trafficDelayInSecondsArray);
+      drawAllRoutes();
+      //displayModal();
+    }
+
+    function callMatrix() {
+      const origins = buildOriginsParameter();
+      const destinations = buildDestinationsParameter();
+      tt.services.matrixRouting({
+        key: apiKey,
+        origins: origins,
+        destinations: destinations,
+        traffic: true
+      }).then(processMatrixResponse);
+    }
+
+    function submitButtonHandler() {
+      clear();
+      callMatrix();
+    }
+
+    function drawPassengerMarkerOnMap(geoResponse) {
+      if (geoResponse && geoResponse.addresses
+        && geoResponse.addresses[0].address.freeformAddress) {
+        passengerMarker.remove();
+        passengerMarker = createPassengerMarker(geoResponse.addresses[0].position,
+          new tt.Popup({ offset: 35 }).setHTML(geoResponse.addresses[0].address.freeformAddress));
+        passengerMarker.togglePopup();
+      }
+    }
+
+    function createPassengerMarker(markerCoordinates, popup) {
+      const passengerMarkerElement = document.createElement('div');
+      passengerMarkerElement.innerHTML = "<img src='{{url_for('static', filename='location-pin.png')}}' style='width: 30px; height: 30px';>";
+      return new tt.Marker({ element: passengerMarkerElement }).setLngLat(markerCoordinates).setPopup(popup).addTo(map);
+    }
+
+    setDefaultTaxiConfig();
+    updateTaxiBatchLocations(passengerInitCoordinates);
+
+    tt.setProductInfo('Taxi dispatcher example application', '1.00');
+
+    map.addControl(new tt.NavigationControl(), 'top-left');
+    passengerMarker = createPassengerMarker(passengerInitCoordinates,
+      new tt.Popup({ offset: 35 }).setHTML("Click anywhere on the map to change pickup location..."));
+    passengerMarker.togglePopup();
+    taxiConfig.forEach(function (taxi) {
+      const carMarkerElement = document.createElement('div');
+      carMarkerElement.innerHTML = taxi.icon;
+      new tt.Marker({ element: carMarkerElement, offset: [0, 27] }).setLngLat(taxi.coordinates).addTo(map);
+    });
+
+    map.on('click', function (event) {
+      const position = event.lngLat;
+      tt.services.reverseGeocode({
+        key: apiKey,
+        position: position
+      })
+        .then(function (results) {
+          drawPassengerMarkerOnMap(results);
+          updateTaxiBatchLocations(passengerMarker.getLngLat().toArray());
+        });
+    });
+
+    //modal.addEventListener('click', function () {
+      //modal.style.display = 'none';
+    //});
+    document.getElementById('submit-button').addEventListener('click', submitButtonHandler);
+  }
+  </script>
+
+  
+
+<!-- Template Javascript -->
+<script src="{{ url_for('static', filename='main.js') }}"></script>
+
+</body>
+
+</html>

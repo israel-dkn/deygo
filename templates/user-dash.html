@@ -9,6 +9,7 @@
     <meta content="Free HTML Templates" name="description">
     <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v2.13.0/mapbox-gl.js'></script>
     <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v2.13.0/mapbox-gl.css' rel='stylesheet' />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 
     <!-- Favicon -->
     <link href="img/favicon.ico" rel="icon">
@@ -136,6 +137,10 @@
 
 <!--Test Begins Here -->
 <style>
+
+    #mapid {
+        height: 300px;
+    }
 
     .radio-inputs {
         display: flex;
@@ -322,19 +327,43 @@
                                 <span aria-hidden="true">&times;</span>
                                 </button>
                             </div>
+                            
                             <div class="modal-body">
-                                <div class="form-group">
-                                    <label for="dropoff" class="col-form-label">Pickup Address:</label>
-                                    {{ form.pickup(class="form-control tomtom-geo") }} <!-- replace place holder with {{ current_user.name }}-->
-                                    </div>
+
+                                <div class="form-group mb-4">
+                                    <label for="email">Pickup Location</label>
+                                    <div class="input-group-append">
+                                        {{ form.pickup(class="form-control tomtom-geo") }} 
+                                        <span class="input-group-text" id="basic-addon1">
+                                            <a href=""><span class="bi bi-globe-europe-africa"></a>
+                                        </span>
+                                        
+                                    </div>  
+                                </div>
     
-                                <div class="form-group">
-                                    <label for="dropoff" class="col-form-label">Dropoff Address:</label>
-                                    {{ form.dropoff(class="form-control tomtom-geo") }}
+
+                                <div id="coordinates">
+                                    <label for="lat">Latitude:</label>
+                                    <input type="text" id="lat" readonly>
+                                    <label for="lon">Longitude:</label>
+                                    <input type="text" id="lon" readonly>
                                 </div>
 
+
+                                <div class="form-group mb-4">
+                                    <label for="email">Dropoff Location</label>
+                                    <div class="input-group-append">
+                                        {{ form.dropoff(class="form-control tomtom-geo") }}
+                                        <span class="input-group-text" id="basic-addon1">
+                                            <a href='' data-toggle="modal" data-target="#map-modal"><span class="bi bi-globe-europe-africa"></span></a>
+                                        </span>
+                                        
+                                    </div>  
+                                </div>
+
+
                                 <div class="form-group">
-                                    <label for="message-text" class="col-form-label">Message:</label>
+                                    <label for="message-text" class="col-form-label">Additional Message:</label>
                                     <textarea class="form-control" id="message-text"></textarea>
                                 </div>
                                 
@@ -371,6 +400,76 @@
     </div>
 </div>
     <!-- Header End -->
+
+
+
+
+<!-- map marker modal -->
+<div class="modal fade" id="map-modal" tabindex="-1" role="dialog" aria-labelledby="map-modal" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="">Map</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+            </div>
+        <div class="modal-body">
+
+    <div id="mapid"></div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        var map = L.map('mapid').setView([9.053362, 7.492751], 12);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
+            maxZoom: 18,
+        }).addTo(map);
+
+        var marker;
+
+        function onMapClick(e) {
+            if (marker) {
+                map.removeLayer(marker);
+            }
+            marker = L.marker(e.latlng).addTo(map);
+            document.getElementById('lat').value = e.latlng.lat;
+            document.getElementById('lon').value = e.latlng.lng;
+            lon.readOnly = true;
+        }
+
+        map.on('click', onMapClick);
+
+        function submitCoordinates() {
+            var lat = document.getElementById('lat').value;
+            var lon = document.getElementById('lon').value;
+            fetch('/get_coordinates', {
+                method: 'POST',
+                body: new URLSearchParams({
+                    'lat': lat,
+                    'lon': lon
+                })
+            }).then(function(response) {
+                return response.text();
+            }).then(function(data) {
+                console.log(data);
+            });
+        }
+    </script>
+
+    
+
+</div>
+    <div class="modal-footer">
+        <a onclick="submitCoordinates()" type="button" class="btn btn-primary w-100">Submit</a>
+        </div>
+</div>
+</div>
+</div>
+<!-- map marker modal END -->
+
+
 
 
     <div class="container-fluid card">

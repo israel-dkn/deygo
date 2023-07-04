@@ -13,7 +13,7 @@
 
 {% for order_qry in order_qry %}
 
-{% if current_user.id == order_qry.available_riders|int and current_user.driver_status=="available"%} 
+{% if current_user.id == order_qry.available_riders|int and current_user.driver_status=="available"  %} 
 
              {% set variable1 = timestamp %}
              {% set variable2 = order_qry.time_created %}
@@ -69,6 +69,7 @@
 <!-- END POP-UP NOTIFICATION -->
 {% endif %}
 {% endif %}
+
 
 {% endfor %}
 
