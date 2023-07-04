@@ -568,7 +568,7 @@ def order_complete(id):
                     
                     db.session.add(pay_dri)
                     db.session.commit()
-                    flash("Order Completed! N{} has been added to your balance".format(format_number_with_commas(cre_amt)), category='success')
+                    flash("Order Completed! N{} has been added to your balance".format(cre_amt), category='success')
                     return redirect(url_for("partner_dashboard"))
                     
                 except Exception as e:
@@ -1063,10 +1063,6 @@ def admin_dahsboard():
 
 
 
-@app.route("/main")
-def main_pg():
-    return render_template("base.html")
-
 
 @app.route("/tables", methods=['GET', 'POST'], defaults={"page": 1})
 @app.route('/tables/<int:page>', methods=["POST", "GET"])
@@ -1156,13 +1152,18 @@ def blog():
 #
 #
 
+@app.route("/map")
+def map_test():
+    dris = PartnerSignup.query.order_by(PartnerSignup.id).all()
+    return render_template("maptest.html",
+                           dris=dris)
 
 # Done! Completed
 @app.route("/rider/order/accept/<int:id>")
 @login_required_partner
 def order_accepted(id):
     if current_user.dri_uuid is None:
-        flash("Activate your deygo wallet to accept requests!")
+        flash("Activate your deygo wallet to accept requests!", category="warning")
         return redirect(url_for("partner_dashboard"))
     else:
         accepted_by = current_user.id
@@ -1235,6 +1236,7 @@ def cancel_request(id):
 def home():
     form = RequestOrderForm(request.form)
     blog_posts = Post.query.order_by(Post.id.desc()).paginate(per_page=2)
+    dri = PartnerSignup.query.order_by(PartnerSignup.id).all()
     # if session['type'] == "NONE" or "none":
     #     pass
     #ses = session['type']
@@ -1242,7 +1244,8 @@ def home():
     
     return render_template("index.html", 
                             blog_posts=blog_posts, 
-                            form=form)
+                            form=form,
+                            dri=dri)
     
 
 
@@ -1340,7 +1343,7 @@ def order_payment(id):
                     cre_amt = cost - our_fees
                     
                     dri_credit = dri_prev_bal + cre_amt
-                    print(f"driver earned: {cre_amt}")
+                    print(f"{current_user.username} driver earned: {cre_amt}")
                     
                     pay_dri = MyWallet(driver_id=order.driver_id,
                                         my_balance=dri_credit,
