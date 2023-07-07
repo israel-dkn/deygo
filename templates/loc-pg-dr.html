@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Rider App</title>
+ 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js" ></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js"></script>
+<style>
+        #map {
+            width: 800px;
+            height: 600px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Rider App</h1>
+    <div id="map"></div>
+
+    <script>
+        var socket = io.connect('http://127.0.0.1:5000');
+        var map;
+
+        // Initialize the Mapbox map
+        function initializeMap() {
+            mapboxgl.accessToken = 'pk.eyJ1IjoiaXNyYWVsZGtuIiwiYSI6ImNsZ2I5ajg5dzAxc2EzZ3BnYzJsYzFidWMifQ.kHIs7ohcJ-ddu250O92saw';
+            map = new mapboxgl.Map({
+                container: 'map',
+                style: 'mapbox://styles/mapbox/satellite-streets-v12',
+                center: [-122.662323, 45.523751], // Initial center coordinates
+                zoom: 4 // Initial zoom level
+            });
+        }
+
+        // Send location updates to the server
+        function sendLocation(riderId, latitude, longitude) {
+            socket.emit('update_rider_location', { rider_id: riderId, latitude: latitude, longitude: longitude });
+        }
+
+        // Retrieve rider's location using the browser's Geolocation API
+        function getLocation(riderId) {
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition(function (position) {
+                    sendLocation(riderId, position.coords.latitude, position.coords.longitude);
+                });
+            } else {
+                alert('Geolocation is not supported by this browser.');
+            }
+        }
+
+        // Connect to the server
+        socket.on('connect', function () {
+            console.log('Rider connected');
+            initializeMap();
+            getLocation();
+        });
+
+        // Disconnect from the server
+        socket.on('disconnect', function () {
+            console.log('Rider disconnected');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% block content %}
+<link type="text/css" href="{{ url_for('static', filename="volt.css") }}" rel="stylesheet">
+<div class="container">
+    <div class="card border-0 shadow mb-4">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-centered table-nowrap mb-0 rounded">
+                    <thead class="thead-light">
+                        <tr>
+                            <th class="border-0 rounded-start">#</th>
+                            <th class="border-0">Traffic Source</th>
+                            <th class="border-0">Source Type</th>
+                            <th class="border-0">Category</th>
+                            <th class="border-0">Global Rank</th>
+                            <th class="border-0">Traffic Share</th>
+                            <th class="border-0 rounded-end">Change</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Item -->
+                        {% for partners in partners.items %}
+                        <tr>
+                            
+                            <td><a href="#" class="text-primary fw-bold">{{ partners.id }}</a> </td>
+                            <td class="fw-bold d-flex align-items-center">
+                                <svg class="icon icon-xxs text-gray-500 me-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clip-rule="evenodd"></path></svg>
+                                {{ partners.partner_name}}
+                            </td>
+                            <td>
+                                {{ partners.partner_email}}
+                            </td>
+                            <td>
+                                <span class="small fw-bold" href="#"> {{ partners.partner_phone }} </span>
+                            </td>
+                            <td>
+                                {{ partners.partner_addr }}
+                            </td>
+                            <td>
+                                <div class="row d-flex align-items-center">
+                                    <div class="col-12 col-xl-2 px-0">
+                                        
+                                        <div class="small fw-bold"> {{ partners.id }}</div>
+                                    </div>
+                                    <div class="col-12 col-xl-10 px-0 px-xl-1">
+                                        <div class="progress progress-lg mb-0">
+                                            <div class="progress-bar bg-dark" role="progressbar" aria-valuenow="51" aria-valuemin="0" aria-valuemax="100" style="width: {{ partners.id}}%;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+    
+                            <!--- #create a column in the database to save the partners total rides
+                            # this should dispay the total rides
+                            # can also be used to dispaly revenue stats
+                            for now it doesn't do anything
+                            -->
+                            {% if partners.id <= 11 %}
+                            <td class="text-success">
+                                <div class="d-flex align-items-center">
+                                    <svg class="icon icon-xs me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"></path></svg>                                   
+                                    <span class="fw-bold">2.45%</span>
+                                </div>
+                            </td>
+                            {% else %}
+                            <td class="text-danger">
+                                <div class="d-flex align-items-center">
+                                    <svg class="icon icon-xs me-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"></path></svg>                                   
+                                    <span class="fw-bold">{{partners.id}}% </span>
+                                </div>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        <!-- End of Item -->
+                        {% endfor %}
+                        <!-- Item -->
+                     
+                        <!-- End of Item -->
+                    </tbody>
+                </table>
+                <br>
+                    <nav aria-label="Page navigation example">
+                        <ul class="pagination">
+                            {% if partners.has_prev %}
+                                <li class="page-item"> <a class="page-link" href="{{ url_for('admin_dahsboard', page=partners.prev_num) }}">Previous</a></li>
+                            {% else %}
+                                <li class="page-item disabled"><a class="page-link disabled" href="#">Previous</a></li>
+                            {% endif %}
+                                
+                                {% for page in partners.iter_pages(left_edge=3, right_edge=3) %}
+                                    {% if page %}
+                                
+                                        {% if page ==partners.page %}
+                                            <li class="page-item active"><a class="page-link" href="{{ url_for('admin_dahsboard', page=page) }}">{{ page }}</a></li>
+                                        {% else %}
+                                            <li class="page-item"><a class="page-link" href="{{ url_for('admin_dahsboard', page=page) }}">{{ page }}</a></li>
+                                        {% endif %}
+                                
+                                    {% else %}
+                                        <li class="page-item disabled" id="example_ellipsis"><a href="#" class="page-link">…</a></li> 
+                                    {% endif %}
+                                {% endfor %}
+                                
+                            {% if partners.has_next %}
+                                <li class="page-item"> <a class="page-link" href="{{ url_for('admin_dahsboard', page=partners.next_num) }}">Next</a></li>
+                            {% else %}
+                                <li class="page-item disabled"><a class="page-link btn disabled" href="#">Next</a></li>
+                            {% endif %}
+                                
+                        </ul>
+                    </nav>
+    
+            </div>
+        </div>
+    </div>
+    </div>
+    {%endblock%}

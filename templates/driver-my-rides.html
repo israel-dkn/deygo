@@ -1,0 +1,293 @@
+
+   {% extends 'company.html' %}
+   
+   {% block title%}<title>Partner - My Rides</title>{% endblock %}
+
+   {% block nava %} {% endblock %}
+   {% block navc %} active {% endblock %}
+
+{% block content %}
+
+
+{% if current_user.driver_status == "on-ride" and last_order.id is not none %}
+    
+    <div class="d-flex container justify-content-center mb-3">
+        <a href="{{ url_for('order_details', id=last_order.id)}}"> <h2 class="text-primary"> <span class="badge badge-pill badge-warning">Complete pending rides...</span></h2></a>
+    </div>
+    
+{% else  %}
+    <div class="d-flex container justify-content-center mb-3">
+        <a> <h2 class="text-primary"> <span class="badge badge-pill badge-secondary"><i>no pending</i></span></h2></a>
+    </div>
+{% endif %}
+
+
+
+<!--End New Ride Requests-->
+
+{% for order_qry in order_qry %}
+
+{% if current_user.id == order_qry.available_riders|int and current_user.driver_status=="available" %}
+                {% set variable1 = timestamp %}
+                {% set variable2 = order_qry.time_created %}
+            
+                {% set result = variable1 - variable2 %}
+
+                {% set result2 = result/60 %}
+
+                {% set resultmin = result2|total_seconds %}
+
+{% if resultmin|int < 3 %}
+<!-- POP-UP NOTIFICATION JS -->
+<script>
+    // JavaScript code for showing the popup
+    window.addEventListener('DOMContentLoaded', function() {
+        var popup = document.getElementById('popup');
+        var dismissBtn = document.getElementById('dismiss-btn');
+    
+    dismissBtn.addEventListener('click', function() {
+      popup.style.display = 'none';
+    });
+
+        popup.style.display = 'block';
+      });
+  </script>
+<!-- END POP-UP NOTIFICATION JS -->
+
+<!-- POP-UP NOTIFICATION -->
+<div class="modal" id="popup" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">A NEW ORDER HAS BEEN ASSIGNED TO YOU!!</h5>
+          <span>
+            {% if resultmin|int < 1 %} just now
+            {% elif resultmin|int < 2 %} 2 min left
+            {% else %} expiring soon!
+        {% endif %}</span>
+        </div>
+        <div class="modal-body">
+          <h6><small>FROM:</small> {{ order_qry.pickup }} </h6>
+          <h6><small>TO:</small> {{ order_qry.dropoff }}</h6>
+          <h5><small>Cost:</small> {{order_qry.delivery_cost|format_number}}</h5>
+        </div>
+        <div class="modal-footer justify-content-center">
+          <button type="button" id="dismiss-btn" class="btn btn-outline-primary btn-lg">Decline</button>
+          <a href="{{ url_for('order_accepted', id=order_qry.id)}}" target="_blank" type="button" class="btn btn-primary btn-lg w-75" >Accept</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- END POP-UP NOTIFICATION -->
+{% endif %}
+{% endif %}
+
+
+    
+    <div class="container">
+        <div class="card">
+            <div class="card-body">
+                {% if order_qry.status == 'completed' %}
+                    <p class="card-text"><span class="badge badge-pill badge-success"> Delivery {{ order_qry.status }}! 📦</span> </p>
+                      
+                {% elif  order_qry.status == 'accepted' %}
+        
+                    <p class="card-text"><span class="badge badge-pill badge-warning"> You accepted this order... </span> </p>
+                {% endif %}
+                
+                <span class="card-title">Requested By: {{order_qry.order.first_name}}</span>
+                                
+                <p class="card-text">Time: 
+                {% set variable1 = timestamp %}
+                {% set variable2 = order_qry.time_created %}
+            
+                {% set result = variable1 - variable2 %}
+                
+                {% set result2 = result/60 %}
+
+                {% set resultmin = result2|total_seconds %}
+                {% set hours = resultmin/60 %}
+                {% set days = resultmin/1440 %}
+                
+                {% if resultmin|int < 1 %} just now
+                {% elif resultmin|int == 1 %} 1 min ago
+                {% elif resultmin|int < 60  %} {{ resultmin|int }} min ago
+                {% elif resultmin|int < 1440 %} {{ hours|int }} hour(s) ago
+                {% else %} {{ days|int }} day(s) ago
+                {% endif %}
+
+            </span> </p>
+
+
+            <hr style="width:95%;text-align:left;margin-left:0">
+                
+                <p><h6><i class="far fa-dot-circle text-primary mr-3"></i>Pickup: {{ order_qry.pickup }}</h6>
+                <p><h6><i class="far fa-dot-circle text-primary mr-3"></i>Deliver: {{ order_qry.dropoff }} </h6>
+            
+        <hr style="width:95%;text-align:left;margin-left:0">
+    
+        
+            <div class="d-flex justify-content-center"> 
+                {% if order_qry.status == 'accepted' %} 
+                <div class="ml-4"><span class="far fa-dot-circle mr-3"></span>Time:<b> {{order_qry.delivery_time}} mins</b></div>
+                <div class="ml-4"><span class="far fa-dot-circle mr-3"></span>Distance:<b> {{order_qry.delivery_distance}} km </b> </div>
+                <div class="ml-4"><span class="far fa-dot-circle mr-3"></span>Price: <b>NGN <h4 style= "display: inline;"> {{order_qry.delivery_cost|format_number}} </h4></b></div>
+                
+                {% endif %}
+            </div>
+
+            <br>
+            {% if  order_qry.status == 'completed' %}
+            <a class="btn btn-primary w-100 btn-lg rounded"><small>Order Completed! 📦 | You Earned: N </small>{{order_qry.delivery_cost|format_number}}</a>
+        
+            {% elif  order_qry.status == 'accepted' %}
+            <a href="{{ url_for('order_details', id=last_order.id)}}" class="btn btn-primary w-100 ml-2 btn-lg rounded">Complete This Order</a>
+            
+            {% endif %}
+            
+            </div>
+        </div>
+        
+    </div>
+        
+    <br>
+        
+
+{% endfor %}
+
+<div class="d-flex justify-content-center">
+    <nav aria-label="Page navigation example">
+        <ul class="pagination">
+            {% if order_qry.has_prev %}
+              <li class="page-item"> <a class="page-link" href="{{ url_for('dashboard_rides', page=order_qry.prev_num) }}">Previous</a></li>
+            {% else %}
+              <li class="page-item"><a class="page-link btn disabled" href="#">Previous</a></li>
+            {% endif %}
+    
+    {% for page in order_qry.iter_pages(left_edge=3, right_edge=3) %}
+    {% if page %}
+    
+    {% if page == order_qry.page %}
+    <li class="page-item active"><a class="page-link" href="{{ url_for('dashboard_rides', page=page) }}">{{ page }}</a></li>
+    {% else %}
+    <li class="page-item"><a class="page-link" href="{{ url_for('dashboard_rides', page=page) }}">{{ page }}</a></li>
+    {% endif %}
+    
+    {% else %}
+    <li class="page-item disabled" id="example_ellipsis"><a href="#" class="page-link">…</a></li> 
+    {% endif %}
+    {% endfor %}
+    
+            {% if order_qry.has_next %}
+              <li class="page-item"> <a class="page-link" href="{{ url_for('dashboard_rides', page=order_qry.next_num) }}">Next</a></li>
+            {% else %}
+              <li class="page-item"><a class="page-link btn disabled" href="#">Next</a></li>
+            {% endif %}
+    
+        </ul>
+    </nav>
+    </div>
+
+<br>
+
+<div class="container card">
+    <div class="card-body">
+    <h4> Delivery History - <small>({{orders_count_all}}) rides</small></h4>
+<div class="container">
+    <div class="card border-0 shadow mb-4">
+        <div class="card-body">
+            
+            <div class="table-responsive">
+                <table class="table table-centered table-nowrap mb-0 rounded">
+                    <thead class="thead-light">
+                        <tr>
+                            <th class="border-0 rounded-start">#</th>
+                            <th class="border-0">Time</th>
+                            <th class="border-0">From</th>
+                            <th class="border-0">To</th>
+                            <th class="border-0">Status</th>
+                            <th class="border-0">Cost</th> 
+                            
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Item -->
+                        {% for order_qry in order_qry %}
+                        {% if order_qry.status == 'canceled' %}
+                         <!-- if order is cancelled, strikethrough all items on the column -->
+                        <tr>
+                            <td><a href="#" class="text-primary fw-bold">{{ order_qry.id }}</a> </td>
+                            <td class="fw-bold d-flex align-items-center">
+                                <s><i> {{ order_qry.time_created.strftime("%m/%d/%Y, %H:%M:%S") }}</s>
+                            </td>
+                            
+                            <td>
+                                <s><i>{{ order_qry.pickup }} </s>
+                            </td>
+
+
+                            <td>
+                                <s><i>{{ order_qry.dropoff}}</s>
+                            </td>
+
+                            <td>
+                                <span class="badge badge-pill p-2 badge-danger">   {{ order_qry.status}}</span>
+                            </td>
+
+                            <td>
+                               
+                                <s><i>canceled</i></s>
+                            </td>
+                        
+                         {% else %}
+                         
+                            <tr>
+                                
+                                <td><a href="#" class="text-primary fw-bold">{{ order_qry.id }}</a> </td>
+                                <td class="fw-bold d-flex align-items-center">
+                                   {{ order_qry.time_created.strftime("%m/%d/%Y, %H:%M:%S") }}
+                                </td>
+    
+                                
+                                 <td>
+                                    {{ order_qry.pickup }} 
+                                </td>
+    
+    
+                                <td>
+                                    {{ order_qry.dropoff}}
+                                </td>
+    
+                                <td>
+                                    {{ order_qry.status}}
+                                </td>
+    
+                                <td>
+                                    {{ order_qry.delivery_cost}}
+                                </td>
+                             
+                        
+                        {% endif %}
+                        {% endfor %}
+                      
+                        <!-- End of Item -->
+                    </tbody>
+                </table>
+                
+                <br>
+                
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+</div>
+
+
+
+
+    
+{% endblock %}
+
+

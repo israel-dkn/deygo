@@ -1,0 +1,560 @@
+{% extends 'base.html' %}
+
+{% block header %}
+    <!-- Header Start -->
+    <div class="jumbotron jumbotron-fluid mb-5">
+        <div class="container text-center py-5">
+            <h1 class="text-primary mb-4">DEYGO!</h1>
+           
+            <h1 class="text-white display-3 mb-5">SUPER ADMIN DASH</h1>
+            <div class="mx-auto" style="width: 100%; max-width: 600px;">
+                <form id="trackitem" method="POST" autocomplete="off">
+                <div class="input-group">
+
+                    <input type="text" class="form-control border-light" style="padding: 30px;" class="form-control" name="tag" id="tag"  placeholder="Enter keyword">
+                    <div class="input-group-append">
+                        <button class="btn btn-primary px-3 " type="submit" >Search</button>
+                    </div>
+                </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endblock %}
+
+{% block content %}
+
+
+<div class="container card">
+    <div class="card-body">
+  <h4> Order History - <small>() transactions</small></h4>
+<div class="container">
+    <div class="card border-0 shadow mb-4">
+        <div class="card-body">
+            
+            <div class="table-responsive">
+                <table class="table table-centered table-nowrap mb-0 rounded">
+                    <thead class="thead-light">
+                        <tr>
+                            <th class="border-0 rounded-start">#</th>
+                            <th class="border-0">Time</th>
+                            <th class="border-0">User</th>
+                            <th class="border-0">Partner</th>
+                            <th class="border-0">Delivery Mode</th>
+                            <th class="border-0">Cost</th> 
+                            
+                        </tr> 
+                    </thead>
+                    <tbody>
+                        <!-- Item -->
+                        {% for orders in orders %}
+                        
+                         
+                            <tr>
+                                
+                                <td><a href="#" class="text-primary fw-bold">{{ orders.id }}</a> </td>
+                                <td class="fw-bold d-flex align-items-center">
+                                   {{ orders.time_created.strftime("%m/%d/%Y, %H:%M:%S") }}
+                                </td>
+    
+                                
+                                 <td>
+                                    {{ orders.order.first_name  }} 
+                                </td>
+    
+    
+                                <td>
+                                    {{ orders.partner.username }}
+                                </td>
+    
+                                <td>
+                                    {{orders.delivery_mode }}
+                                </td>
+    
+                                <td>
+                                    {{ orders.delivery_cost|format_number }}
+                                </td>
+                             
+                        
+                        
+                        {% endfor %}
+                      
+                        <!-- End of Item -->
+                    </tbody>
+                </table>
+                
+                <br>
+                
+            </div>
+        </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="d-flex justify-content-center">
+  <nav aria-label="Page navigation example">
+      <ul class="pagination">
+          {% if orders.has_prev %}
+            <li class="page-item"> <a class="page-link" href="{{ url_for('deygo_admin', query="orders" ,page=orders.prev_num) }}">Previous</a></li>
+          {% else %}
+            <li class="page-item"><a class="page-link btn disabled" href="#">Previous</a></li>
+          {% endif %}
+  
+  {% for page in orders.iter_pages(left_edge=3, right_edge=3) %}
+  {% if page %}
+  
+  {% if page == orders.page %}
+  <li class="page-item active"><a class="page-link" href="{{ url_for('deygo_admin',query="orders" , page=page) }}">{{ page }}</a></li>
+  {% else %}
+  <li class="page-item"><a class="page-link" href="{{ url_for('deygo_admin', query="orders" ,page=page) }}">{{ page }}</a></li>
+  {% endif %}
+  
+  {% else %}
+  <li class="page-item disabled" id="example_ellipsis"><a href="#" class="page-link">…</a></li> 
+  {% endif %}
+  {% endfor %}
+  
+          {% if orders.has_next %}
+            <li class="page-item"> <a class="page-link" href="{{ url_for('deygo_admin', query="orders" ,page=orders.next_num) }}">Next</a></li>
+          {% else %}
+            <li class="page-item"><a class="page-link btn disabled" href="#">Next</a></li>
+          {% endif %}
+  
+      </ul>
+  </nav>
+  </div>
+</div>
+
+
+
+<br>
+
+
+<div class="container card">
+    <div class="card-body">
+  <h4> Users - <small>() transactions</small></h4>
+<div class="container">
+    <div class="card border-0 shadow mb-4">
+        <div class="card-body">
+            
+            <div class="table-responsive">
+                <table class="table table-centered table-nowrap mb-0 rounded">
+                    <thead class="thead-light">
+                        <tr>
+                            <th class="border-0 rounded-start">#</th>
+                            <th class="border-0">Time</th>
+                            <th class="border-0">User</th>
+                            <th class="border-0">Partner</th>
+                            <th class="border-0">Delivery Mode</th>
+                            <th class="border-0">Cost</th> 
+                            
+                        </tr> 
+                    </thead>
+                    <tbody>
+                        <!-- Item -->
+                        {% for users in users %}
+                        
+                         
+                            <tr>
+                                
+                                <td><a href="#" class="text-primary fw-bold">{{ users.id }}</a> </td>
+                                <td class="fw-bold d-flex align-items-center">
+                                   {{ users.date_registered.strftime("%m/%d/%Y, %H:%M:%S") }}
+                                </td>
+    
+                                
+                                 <td>
+                                    {{ users.first_name  }} 
+                                </td>
+    
+    
+                                <td>
+                                    {{ users.address }}
+                                </td>
+    
+                                <td>
+                                    {{users.phone }}
+                                </td>
+                                
+                                {% if users.user_account_balance == none %}
+                                <td>
+                                    wallet not activated
+                                </td>
+                                {% else %}
+                                <td>
+                                    {{ users.user_account_balance|format_number }}
+                                </td>
+                             {% endif %}
+                        
+                        
+                        {% endfor %}
+                      
+                        <!-- End of Item -->
+                    </tbody>
+                </table>
+                
+                <br>
+                
+            </div>
+        </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="d-flex justify-content-center">
+  <nav aria-label="Page navigation example">
+      <ul class="pagination">
+          {% if users.has_prev %}
+            <li class="page-item"> <a class="page-link" href="{{ url_for('deygo_admin', query="users" ,page=users.prev_num) }}">Previous</a></li>
+          {% else %}
+            <li class="page-item"><a class="page-link btn disabled" href="#">Previous</a></li>
+          {% endif %}
+  
+  {% for page in users.iter_pages(left_edge=3, right_edge=3) %}
+  {% if page %}
+  
+  {% if page == users.page %}
+  <li class="page-item active"><a class="page-link" href="{{ url_for('deygo_admin', query="users" ,page=page) }}">{{ page }}</a></li>
+  {% else %}
+  <li class="page-item"><a class="page-link" href="{{ url_for('deygo_admin', query="users" ,page=page) }}">{{ page }}</a></li>
+  {% endif %}
+  
+  {% else %}
+  <li class="page-item disabled" id="example_ellipsis"><a href="#" class="page-link">…</a></li> 
+  {% endif %}
+  {% endfor %}
+  
+          {% if users.has_next %}
+            <li class="page-item"> <a class="page-link" href="{{ url_for('deygo_admin', query="users" ,page=users.next_num) }}">Next</a></li>
+          {% else %}
+            <li class="page-item"><a class="page-link btn disabled" href="#">Next</a></li>
+          {% endif %}
+  
+      </ul>
+  </nav>
+  </div>
+</div>
+
+
+<br>
+
+
+<div class="container card">
+    <div class="card-body">
+  <h4> Partners - <small>() transactions</small></h4>
+<div class="container">
+    <div class="card border-0 shadow mb-4">
+        <div class="card-body">
+            
+            <div class="table-responsive">
+                <table class="table table-centered table-nowrap mb-0 rounded">
+                    <thead class="thead-light">
+                        <tr>
+                            <th class="border-0 rounded-start">#</th>
+                            <th class="border-0">Time</th>
+                            <th class="border-0">Partner</th>
+                            <th class="border-0">Email</th>
+                            <th class="border-0">Partner Status</th>
+                            <th class="border-0">Balance</th> 
+                            
+                        </tr> 
+                    </thead>
+                    <tbody>
+                        <!-- Item -->
+                        {% for partners in partners %}
+                        
+                         
+                            <tr>
+                                
+                                <td><a href="#" class="text-primary fw-bold">{{ partners.id }}</a> </td>
+                                <td class="fw-bold d-flex align-items-center">
+                                   {{ partners.date_registered.strftime("%m/%d/%Y, %H:%M:%S") }}
+                                </td>
+    
+                                
+                                 <td>
+                                    {{ partners.username }} 
+                                </td>
+    
+    
+                                <td>
+                                    {{ partners.email }}
+                                </td>
+    
+                                <td>
+                                    {{partners.driver_status }}
+                                </td>
+    
+                                <td>
+                                    {{ partners.dri_account_balance|format_number }}
+                                </td>
+                             
+                        
+                        
+                        {% endfor %}
+                      
+                        <!-- End of Item -->
+                    </tbody>
+                </table>
+                
+                <br>
+                
+            </div>
+        </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="d-flex justify-content-center">
+  <nav aria-label="Page navigation example">
+      <ul class="pagination">
+          {% if orders.has_prev %}
+            <li class="page-item"> <a class="page-link" href="{{ url_for('deygo_admin',query="orders" , page=orders.prev_num) }}">Previous</a></li>
+          {% else %}
+            <li class="page-item"><a class="page-link btn disabled" href="#">Previous</a></li>
+          {% endif %}
+  
+  {% for page in orders.iter_pages(left_edge=3, right_edge=3) %}
+  {% if page %}
+  
+  {% if page == orders.page %}
+  <li class="page-item active"><a class="page-link" href="{{ url_for('deygo_admin',query="orders" , page=page) }}">{{ page }}</a></li>
+  {% else %}
+  <li class="page-item"><a class="page-link" href="{{ url_for('deygo_admin', query="orders" ,page=page) }}">{{ page }}</a></li>
+  {% endif %}
+  
+  {% else %}
+  <li class="page-item disabled" id="example_ellipsis"><a href="#" class="page-link">…</a></li> 
+  {% endif %}
+  {% endfor %}
+  
+          {% if orders.has_next %}
+            <li class="page-item"> <a class="page-link" href="{{ url_for('deygo_admin',query="orders" , page=orders.next_num) }}">Next</a></li>
+          {% else %}
+            <li class="page-item"><a class="page-link btn disabled" href="#">Next</a></li>
+          {% endif %}
+  
+      </ul>
+  </nav>
+  </div>
+</div>
+
+<br>
+
+<div class="container card">
+    <div class="card-body">
+  <h4> Wallet Transactions - <small>() transactions</small></h4>
+<div class="container">
+    <div class="card border-0 shadow mb-4">
+        <div class="card-body">
+            
+            <div class="table-responsive">
+                <table class="table table-centered table-nowrap mb-0 rounded">
+                    <thead class="thead-light">
+                        <tr>
+                            <th class="border-0 rounded-start">#</th>
+                            <th class="border-0">Time</th>
+                            <th class="border-0">User</th>
+                            <th class="border-0">Partner</th>
+                            <th class="border-0">Delivery Mode</th>
+                            <th class="border-0">Cost</th> 
+                            
+                        </tr> 
+                    </thead>
+                    <tbody>
+                        <!-- Item -->
+                        {% for wallets in wallets %}
+                        
+                         
+                            <tr>
+                                
+                                <td><a href="#" class="text-primary fw-bold">{{ wallets.id }}</a> </td>
+                                <td class="fw-bold d-flex align-items-center">
+                                   {{ wallets.date_created.strftime("%m/%d/%Y, %H:%M:%S") }}
+                                </td>
+    
+                                {% if wallets.driver_id is not none %}
+                                 <td>
+                                    {{ wallets.partner_wallet.username  }} 
+                                </td>
+                                {% else %}
+                                <td>
+                                    {{ wallets.user_wallet.first_name  }} 
+                                </td>
+                                {% endif %}
+    
+    
+                                <td>
+                                    {{ wallets.trans_amount }}
+                                </td>
+    
+                                <td>
+                                    {{wallets.trans_fees }}
+                                </td>
+    
+                                <td>
+                                    {{ wallets.trans_message}}
+                                </td>
+                             
+                        
+                        
+                        {% endfor %}
+                      
+                        <!-- End of Item -->
+                    </tbody>
+                </table>
+                
+                <br>
+                
+            </div>
+        </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="d-flex justify-content-center">
+  <nav aria-label="Page navigation example">
+      <ul class="pagination">
+          {% if wallets.has_prev %}
+            <li class="page-item"> <a class="page-link" href="{{ url_for('deygo_admin', query="wallet", page=wallets.prev_num) }}">Previous</a></li>
+          {% else %}
+            <li class="page-item"><a class="page-link btn disabled" href="#">Previous</a></li>
+          {% endif %}
+  
+  {% for page in wallets.iter_pages(left_edge=3, right_edge=3) %}
+  {% if page %}
+  
+  {% if page == wallets.page %}
+  <li class="page-item active"><a class="page-link" href="{{ url_for('deygo_admin', query="wallet", page=page) }}">{{ page }}</a></li>
+  {% else %}
+  <li class="page-item"><a class="page-link" href="{{ url_for('deygo_admin', query="wallet", page=page) }}">{{ page }}</a></li>
+  {% endif %}
+  
+  {% else %}
+  <li class="page-item disabled" id="example_ellipsis"><a href="#" class="page-link">…</a></li> 
+  {% endif %}
+  {% endfor %}
+  
+          {% if wallets.has_next %}
+            <li class="page-item"> <a class="page-link" href="{{ url_for('deygo_admin',query="wallet", page=wallets.next_num) }}">Next</a></li>
+          {% else %}
+            <li class="page-item"><a class="page-link btn disabled" href="#">Next</a></li>
+          {% endif %}
+  
+      </ul>
+  </nav>
+  </div>
+</div>
+
+
+<br>
+
+
+<div class="container card">
+    <div class="card-body">
+  <h4> Partners Rating - <small>() transactions</small></h4>
+<div class="container">
+    <div class="card border-0 shadow mb-4">
+        <div class="card-body">
+            
+            <div class="table-responsive">
+                <table class="table table-centered table-nowrap mb-0 rounded">
+                    <thead class="thead-light">
+                        <tr>
+                            <th class="border-0 rounded-start">#</th>
+                            <th class="border-0">Time</th>
+                            <th class="border-0">Total Rating</th>
+                            <th class="border-0">By(users)</th>
+                            <th class="border-0">Partner Status</th>
+                            <th class="border-0">Balance</th> 
+                            
+                        </tr> 
+                    </thead>
+                    <tbody>
+                        <!-- Item -->
+                        {% for partners in partners %}
+                        
+                         
+                            <tr>
+                                
+                                <td><a href="#" class="text-primary fw-bold">{{ partners.id }}</a> </td>
+                                <td class="fw-bold d-flex align-items-center">
+                                   {{ partners.date_registered.strftime("%m/%d/%Y, %H:%M:%S") }}
+                                </td>
+    
+                                
+                                 <td>
+                                    {{ partners.good_review }} 
+                                </td>
+    
+    
+                                <td>
+                                    {{ partners.bad_review }} 
+                                </td>
+    
+                                <td>
+                                    empty
+                                </td>
+    
+                                <td>
+                                    empty
+                                </td>
+                             
+                        
+                        
+                        {% endfor %}
+                      
+                        <!-- End of Item -->
+                    </tbody>
+                </table>
+                
+                <br>
+                
+            </div>
+        </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="d-flex justify-content-center">
+  <nav aria-label="Page navigation example">
+      <ul class="pagination">
+          {% if orders.has_prev %}
+            <li class="page-item"> <a class="page-link" href="{{ url_for('deygo_admin', query="partners" ,page=orders.prev_num) }}">Previous</a></li>
+          {% else %}
+            <li class="page-item"><a class="page-link btn disabled" href="#">Previous</a></li>
+          {% endif %}
+  
+  {% for page in partners.iter_pages(left_edge=3, right_edge=3) %}
+  {% if page %}
+  
+  {% if page == partners.page %}
+  <li class="page-item active"><a class="page-link" href="{{ url_for('deygo_admin', query="partners" ,page=page) }}">{{ page }}</a></li>
+  {% else %}
+  <li class="page-item"><a class="page-link" href="{{ url_for('deygo_admin', query="partners" ,page=page) }}">{{ page }}</a></li>
+  {% endif %}
+  
+  {% else %}
+  <li class="page-item disabled" id="example_ellipsis"><a href="#" class="page-link">…</a></li> 
+  {% endif %}
+  {% endfor %}
+  
+          {% if partners.has_next %}
+            <li class="page-item"> <a class="page-link" href="{{ url_for('deygo_admin',query="partners" , page=partners.next_num) }}">Next</a></li>
+          {% else %}
+            <li class="page-item"><a class="page-link btn disabled" href="#">Next</a></li>
+          {% endif %}
+  
+      </ul>
+  </nav>
+  </div>
+</div>
+
+
+
+{% endblock %}
