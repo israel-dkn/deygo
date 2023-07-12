@@ -206,14 +206,15 @@
                 <i class="fa fa-circle px-3"></i>
                 <p class="m-0"><small>Completed: </small><b>{{orders_count}} 🚴 </b></p>
                 <i class="fa fa-circle px-3"></i>
-                {% set rate1 = current_user.good_review %}
-                {% set rate2 = current_user.bad_review %}
+                {% set rate1 = current_user.total_rate %}
+                {% set rate2 = current_user.rate_by %}
                 {% if rate2 == 0 %}
                 <p class="m-0"><small>Ratings:</small>  <i>no rating yet </i> </p>
               {% else %}
                 
-                {% set rate3 = (rate1/rate2) * rate2 %}
-                {% set rate4 = rate3/rate2 %}
+                {% set rate3 = 5 * rate2 %}
+                {% set rate4 = rate1/rate3 * 100%}
+                
                 <p class="m-0"><small>Ratings:</small>  <b>{{rate4|int}} %</b> </p>
               {% endif %}
                 {% endif %}

@@ -1,0 +1,11 @@
+# from locust import HttpUser, task, between
+
+# class MyLocust(HttpUser):
+#     wait_time = between(1, 2)  # Wait time between simulated requests
+
+#     @task
+#     def index(self):
+#         self.client.get("/")  # Replace "/" with the URL path of your Flask app endpoint
+
+#     # Additional tasks and scenarios
+#     # ...

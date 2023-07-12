@@ -141,7 +141,10 @@
     #mapid {
         height: 300px;
     }
-
+    #mapid2 {
+      height: 400px;
+      width: 100%;
+  }
     .radio-inputs {
         display: flex;
         justify-content: center;
@@ -510,27 +513,22 @@ $checked-color: #e52;
                                 <div class="form-group mb-4">
                                     <label for="email">Pickup Location</label>
                                     <div class="input-group-append">
-                                        {{ form.pickup(class="form-control tomtom-geo") }} 
+                                        {{ form.pickup(class="form-control tomtom-geo", id="lat2") }} 
                                         <span class="input-group-text" id="basic-addon1">
-                                            <a href=""><span class="bi bi-globe-europe-africa"></a>
+                                          <a href='' data-toggle="modal" data-target="#smap-modal"><span class="bi bi-globe-europe-africa"></span></a>
                                         </span>
                                         
                                     </div>  
                                 </div>
     
 
-                                <div id="coordinates">
-                                    <label for="lat">Latitude:</label>
-                                    <input type="text" id="lat" readonly>
-                                    <label for="lon">Longitude:</label>
-                                    <input type="text" id="lon" readonly>
-                                </div>
+                                
 
 
                                 <div class="form-group mb-4">
                                     <label for="email">Dropoff Location</label>
                                     <div class="input-group-append">
-                                        {{ form.dropoff(class="form-control tomtom-geo") }}
+                                        {{ form.dropoff(class="form-control tomtom-geo", id="lon2") }}
                                         <span class="input-group-text" id="basic-addon1">
                                             <a href='' data-toggle="modal" data-target="#map-modal"><span class="bi bi-globe-europe-africa"></span></a>
                                         </span>
@@ -611,41 +609,81 @@ $checked-color: #e52;
                 map.removeLayer(marker);
             }
             marker = L.marker(e.latlng).addTo(map);
-            document.getElementById('lat').value = e.latlng.lat;
-            document.getElementById('lon').value = e.latlng.lng;
-            lon.readOnly = true;
+            document.getElementById('lon2').value = e.latlng.lat + ", " + e.latlng.lng ;
+            lon2.readOnly = true;
+            var formField = document.getElementById('lon2');
+            formField.setAttribute("name", "chose_lat1");
+            
         }
 
         map.on('click', onMapClick);
-
-        function submitCoordinates() {
-            var lat = document.getElementById('lat').value;
-            var lon = document.getElementById('lon').value;
-            fetch('/get_coordinates', {
-                method: 'POST',
-                body: new URLSearchParams({
-                    'lat': lat,
-                    'lon': lon
-                })
-            }).then(function(response) {
-                return response.text();
-            }).then(function(data) {
-                console.log(data);
-            });
-        }
+ 
     </script>
-
-    
-
 </div>
     <div class="modal-footer">
-        <a onclick="submitCoordinates()" type="button" class="btn btn-primary w-100">Submit</a>
+      <a type="button" id="dismiss-btn" data-dismiss="modal" class="btn btn-primary w-100">Done</a>
         </div>
 </div>
 </div>
 </div>
 <!-- map marker modal END -->
 
+
+
+
+<!-- pickup map marker modal -->
+<div class="modal fade" id="smap-modal" tabindex="-1" role="dialog" aria-labelledby="smap-modal" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+          <h5 class="modal-title">Map</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+          </button>
+          </div>
+      <div class="modal-body">
+
+  <div id="mapid2"></div>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+      var map = L.map('mapid2').setView([9.053362, 7.492751], 12);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
+          maxZoom: 18,
+      }).addTo(map);
+
+      var marker;
+
+      function onMapClick(e) {
+          if (marker) {
+              map.removeLayer(marker);
+          }
+          marker = L.marker(e.latlng).addTo(map);
+          document.getElementById('lat2').value = e.latlng.lat + ", " + e.latlng.lng ;
+          lat2.readOnly = true;
+          var formField = document.getElementById('lat2');
+          formField.setAttribute("name", "chose_lat2");
+          
+      }
+
+      map.on('click', onMapClick);
+
+      $('#smap-modal').on('shown.bs.modal', function () {
+        map.invalidateSize();
+      });
+
+  </script>
+</div>
+  <div class="modal-footer">
+      <a type="button" id="dismiss-btn" data-dismiss="modal" class="btn btn-primary w-100">Done</a>
+      </div>
+</div>
+</div>
+</div>
+<!-- pickup map marker modal END -->
 
 
 
@@ -852,7 +890,7 @@ $checked-color: #e52;
     // JavaScript code for showing the popup
     window.addEventListener('DOMContentLoaded', function() {
         var popup = document.getElementById('popup');
-        var dismissBtn = document.getElementById('dismiss-btn');
+        var dismissBtn = document.getElementById('dismiss-btn-pay');
     
     dismissBtn.addEventListener('click', function() {
       popup.style.display = 'none';
@@ -881,8 +919,8 @@ $checked-color: #e52;
           <h5><small>Cost:</small> {{order_qry.delivery_cost|format_number}}</h5>
         </div>
         <div class="modal-footer justify-content-center">
-          <button type="button" id="dismiss-btn" class="btn btn-outline-primary btn-lg">Back</button>
-          <a href="{{ url_for('order_payment', id=order_qry.id)}}" target="_blank" type="button" class="btn btn-primary btn-lg w-75" >Pay now</a>
+          <button type="button" id="dismiss-btn-pay" class="btn btn-outline-primary btn-lg">Back</button>
+          <a href="{{ url_for('order_payment', id=order_qry.id)}}" type="button" class="btn btn-primary btn-lg w-75" >Pay now</a>
         </div>
       </div>
     </div>
